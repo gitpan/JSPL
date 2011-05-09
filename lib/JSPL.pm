@@ -8,8 +8,9 @@ use Carp;
 
 our $VERSION;
 BEGIN {
-    $VERSION = '1.03';
+    $VERSION = '1.04';
     our @ISA = qw(DynaLoader);
+    our $_gruntime = 0;
     DynaLoader::bootstrap('JSPL', $VERSION);
 }
 
@@ -300,7 +301,7 @@ See L<JSPL::Error> for more details
 
 =item C<JavaScript> by Claes Jakobsson
 
-Thought the API are similar, there is a fundamental difference: L<JavaScript>
+Thought the API are similar, there is a fundamental difference: C<JavaScript>
 is mainly a "converter" between types, and this module is a true "reflector",
 so there are a few but important incompatibilities.
 
@@ -491,7 +492,7 @@ Miguel Ibarra &lt;mibarra@msg.com.mx&gt;
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2008 - 2010, Salvador Ortiz <sortiz@cpan.org>
+Copyright (c) 2008 - 2011, Salvador Ortiz <sortiz@cpan.org>
 All rights reserved.
 
 Some code adapted from Claes Jakobsson's JavaScript module, 

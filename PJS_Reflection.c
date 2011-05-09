@@ -321,7 +321,9 @@ PJS_ReflectJS2Perl(
 	/* Common JSObject case */
 
 	/* Check registered perl visitors */
-	JS_LookupProperty(cx, pcx->pvisitors, hkey, &temp);
+	JSObject *pvis = pcx->pvisitors;
+	assert(pvis);
+	JS_LookupProperty(cx, pvis, hkey, &temp);
 
 	if(temp != JSVAL_VOID) {
 	    /* Already registered, so exits a reference in perl space
@@ -390,7 +392,10 @@ PJS_ReflectJS2Perl(
 		   !JS_DefineProperty(cx, object, PJS_PASSPORT_PROP,
 		                      OBJECT_TO_JSVAL(passport),
 		                      NULL, NULL, JSPROP_READONLY | JSPROP_PERMANENT))
+		{
+		    warn("Can't create passport\n");
 		    return JS_FALSE;
+		}
 		box = SvRV(boxref);
 		/* boxref is mortal, so we need to increment its rc, at end of
 		 * scope, PASSPORT owns created box */
@@ -402,7 +407,7 @@ PJS_ReflectJS2Perl(
 	    /* Root object adding it to pvisitors list, will be unrooted by
 	     * jsc_free_root at Boxed DESTROY time
 	     */
-	    JS_DefineProperty(cx, pcx->pvisitors, hkey, value, NULL, NULL, 0);
+	    JS_DefineProperty(cx, pvis, hkey, value, NULL, NULL, 0);
 	}
 	/* Here the RC of box in PASSPORT reflects wrapper's ownership */
 

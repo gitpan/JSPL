@@ -84,6 +84,7 @@ sub __bind_to_stash {
     };
     # warn "Want to bind $self to $sigil${package}::${name}\n";
     no strict 'refs';
+    no warnings 'prototype';
     *{"${package}::${name}"} = $code;
     return 1;
 }

@@ -28,7 +28,7 @@ int
 rop_set_prop(dest, pcx, name, val)
     JSPL::RawObj  dest;
     JSPL::Context pcx;
-    SV *name;
+    SV *name = SvREADONLY($arg) ? sv_mortalcopy($arg) : $arg;
     SV *val;
     ALIAS:
 	set_elem = 2
@@ -62,7 +62,7 @@ jsval
 rop_get_prop(source, pcx, property)
     JSPL::RawObj  source;
     JSPL::Context pcx;
-    SV *property;
+    SV *property = SvREADONLY($arg) ? sv_mortalcopy($arg) : $arg;
     ALIAS:
 	get_elem = 2
     PREINIT:
@@ -100,7 +100,7 @@ int
 rop_delete_prop(dest, pcx, name)
     JSPL::RawObj  dest;
     JSPL::Context pcx;
-    SV *name;
+    SV *name = SvREADONLY($arg) ? sv_mortalcopy($arg) : $arg;
     ALIAS:
 	delete_elem = 2
     PREINIT:

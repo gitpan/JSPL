@@ -1,10 +1,11 @@
 package JSPL::SM::Opcode;
 use strict;
 use warnings;
+use Carp;
 
 use JSPL;
 use Carp;
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 our @Opcodes;
 BEGIN { JSPL::_boot_(__PACKAGE__, $JSPL::VERSION) }

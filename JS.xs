@@ -51,7 +51,9 @@ PJS_MakeScript(
     } else {
 	STRLEN len;
 	char *src = SvPV(source, len);
-	script = JS_CompileScript(cx, scope, src, len, name, 1);
+	script = gMyPri
+	    ? JS_CompileScriptForPrincipals(cx, scope, gMyPri, src, len, name, 1)
+	    : JS_CompileScript(cx, scope, src, len, name, 1);
     }
     return script;
 }
@@ -118,7 +120,7 @@ SV*
 does_support_threading(...)
     CODE:
 	PERL_UNUSED_VAR(items); /* -W */
-#ifdef JS_THREADING
+#ifdef JS_THREADSAFE
 	RETVAL = &PL_sv_yes;
 #else
 	RETVAL = &PL_sv_no;
@@ -149,7 +151,8 @@ jsr_create(maxbytes)
     CODE:
 	Newxz(RETVAL, 1, PJS_Runtime);
 	if(!RETVAL) XSRETURN_UNDEF;
-	RETVAL->rt = JS_NewRuntime(maxbytes);
+	if(plGRuntime) RETVAL->rt = plGRuntime;
+	else if(maxbytes) RETVAL->rt = JS_NewRuntime(maxbytes);
 	if(!RETVAL->rt) {
 	    Safefree(RETVAL);
 	    croak("Failed to create Runtime");
@@ -161,17 +164,24 @@ void
 jsr_DESTROY(runtime)
     JSPL::RawRT runtime
     CODE:
-	if(!PL_dirty) JS_DestroyRuntime(runtime->rt);
+	if(!PL_dirty && !plGRuntime) JS_DestroyRuntime(runtime->rt);
 	runtime->rt = NULL;
 	Safefree(runtime);
 
 MODULE = JSPL     PACKAGE = JSPL::Context
 
 JSPL::Context 
-create(rt)
+create(rt, ...)
     JSPL::RawRT rt;
+    INIT:
+    JSContext *imported = NULL;
     CODE:
-	RETVAL = PJS_CreateContext(aTHX_ rt, ST(0));
+	if(items == 3) {
+	    warn("Importing context\n");
+	    imported = (JSContext *)SvIV(ST(1));
+	    gMyPri = (JSPrincipals *)SvIV(ST(2));
+	}
+	RETVAL = PJS_CreateContext(aTHX_ rt, ST(0), imported);
     OUTPUT:
 	RETVAL
 
@@ -362,7 +372,7 @@ get_global(pcx)
 	RETVAL
 
 SV*
-new_object(pcx, parent)
+new_object(pcx, parent=&PL_sv_undef)
     JSPL::Context pcx;
     JSObject *parent = NO_INIT;
     PREINIT:
@@ -532,6 +542,7 @@ False()
 #endif
 
 BOOT:
+    plGRuntime = (JSRuntime *)SvIV(get_sv("JSPL::_gruntime", 1));
     PJS_Context_SV = gv_fetchpv(NAMESPACE"Context::CURRENT", GV_ADDMULTI, SVt_IV);
     PJS_This = gv_fetchpv(NAMESPACE"This", GV_ADDMULTI, SVt_PV);
 #if PJS_UTF8_NATIVE

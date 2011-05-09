@@ -1,4 +1,4 @@
-%define pmod_ver 1.03
+%define pmod_ver 1.04
 
 Summary: Perl JSPL module, a bridge between Spidermonkey javascript engine and perl
 Name: perl-JSPL

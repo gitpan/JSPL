@@ -1,5 +1,5 @@
 #!perl
-use Test::More tests => 99;
+use Test::More tests => 100;
 use utf8;
 use strict;
 use warnings;
@@ -43,9 +43,9 @@ sub BarP::meth {
 }
 
 sub BarP::sub1 {
-    # FIXME, Assumes old 'apply' semantic.
-    is($_[2], 'Perl roks!', $_[2]);
-    return $_[1];
+    is($_[1], 'Perl roks!', $_[1]);
+    is($JSPL::This, 8, "This ok");
+    return $_[0];
 }
 
 my $rt1 = JSPL::Runtime->new;
@@ -217,10 +217,10 @@ isa_ok($ctx->eval('io'), 'IO::File');
 # Now a big test
 ok($ctx->eval(q|
 	var pos;
-	io.print("Some text, line 1\n");
-	io.print("more text, line 2\n");
+	io.print("Some text, line 1");
+	io.print("more text, line 2");
 	pos = io.getpos();
-	io.print("This is line 3\n");
+	io.print("This is line 3");
 	io.seek(0, 0); // To the begining
 	is(io.read(4), 'Some', "line1: Some");
 	io.setpos(pos);

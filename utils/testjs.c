@@ -41,6 +41,7 @@ int main(int argc, char *argv[]) {
 	gobj = JS_NewObject(cx, &global_class, NULL, NULL);
 #else
 	gobj = JS_NewGlobalObject(cx, &global_class);
+	fprintf(stderr, "Warning: unfinished port to this SM version!\n");
 #endif
 	if(!gobj || !JS_InitStandardClasses(cx, gobj)) 
 	    goto fail;

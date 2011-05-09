@@ -2,37 +2,14 @@
 use strict;
 use warnings;
 
-use lib qw(blib/lib blib/arch);
-
 use Term::ReadLine();
 use Getopt::Long();
 use JSPL;
-our $VERSION = '0.9';
+our $VERSION = '0.91';
 
-my $Options = {};
-
-my $ctx = JSPL->stock_context;
-my @services = (
-    quit => sub { bless {}, 'QUIT' },
-    version => "JSPL version $VERSION",
-    'attach' => sub {
-	JSPL->check_privileges;
-	for(@_) {
-	    eval "package My::Attached;\nuse $_;";
-	    die $@ if $@;
-	}
-    },
-    'Attached' => $ctx->get_controller->add('My::Attached')->{Proxy},
-#    'package' => sub {
-#	defined $_[0]
-#	    ? bless \(q|$stash=$ctx->get_controller->get_package('| . "$_[0]')")
-#	    : bless \(q|$stash=undef|) ,
-#	'CMD'
-#    },
-);
-
-$ctx->bind_all(@services);
-$ctx->{Restricted} = 0;
+my $Options = {
+    rt => 'stock',
+};
 
 sub evalmode {
     my $ctx = shift;
@@ -95,20 +72,48 @@ Getopt::Long::GetOptions(
     $Options,
     'shell',
     'help|?',
+    'rt=s',
 ) or usage(1);
 usage(0) if $Options->{help};
+
+my $ctx = JSPL->stock_context($Options->{rt});
+$ctx->bind_all(
+    quit => sub { bless {}, 'QUIT' },
+    version => "JSPL version $VERSION",
+    'attach' => sub {
+	JSPL->check_privileges;
+	for(@_) {
+	    eval "package My::Attached;\nuse $_;";
+	    die $@ if $@;
+	}
+    },
+    'Attached' => $ctx->get_controller->add('My::Attached')->{Proxy},
+#    'package' => sub {
+#	defined $_[0]
+#	    ? bless \(q|$stash=$ctx->get_controller->get_package('| . "$_[0]')")
+#	    : bless \(q|$stash=undef|) ,
+#	'CMD'
+#    },
+);
+
+$ctx->{Restricted} = 0;
 
 if($Options->{shell} || !@ARGV) {
     evalmode($ctx);
 } else {
-    my $prgname;
-    $ctx->bind_all(
-	Argv   => \@ARGV,
-	PrgName => \$prgname,
-    );
-    $prgname = $ARGV;
-    scalar(<ARGV>);
-    eval { $ctx->eval(\*ARGV, $ARGV) } or die $@,"\n";
+    require IO::File;
+    my $prgname = shift @ARGV;
+    my $bang = '';
+    my $fh = IO::File->new($prgname) or die "Can't open $prgname\n";
+    my $c = $fh->getc;
+    if($c eq '#') {
+	$bang = $fh->getline;
+    } else {
+	$fh->ungetc(ord($c));
+    }
+    my $plug = JSPL::Runtime->_getplug;
+    $plug->{main}->($ctx, $prgname, $bang) if $plug->{main};
+    eval { $ctx->eval($fh, $prgname) } or die $@,"\n";
 }
 $ctx = undef;
 

@@ -1,4 +1,5 @@
 package JSPL::SM::ByteCode;
+use 5.010;
 use strict;
 use warnings;
 
@@ -68,27 +69,27 @@ $_tdecoders[JOF_UINT16] = sub {
 $_tdecoders[JOF_INT32] = sub {
     my $self = shift;
     $self->_int32;
-} if defined &JOF_INT32;
+} if eval "JOF_INT32";
 
 $_tdecoders[JOF_OBJECT] = sub {
     my $self = shift;
     $self->{sc}->_getobject($self->_uint16);
-} if defined &JOF_OBJECT;
+} if eval "JOF_OBJECT";
 
 $_tdecoders[JOF_UINT16PAIR] = sub {
     my $self = shift;
     ($self->_uint16, $self->_uint16(2));
-} if defined &JOF_UINT16PAIR;
+} if eval "JOF_UINT16PAIR";
 
 $_tdecoders[JOF_UINT8] = sub {
     my $self = shift;
     $self->_uint8;
-} if defined &JOF_UINT8;
+} if eval "JOF_UINT8";
 
 $_tdecoders[JOF_INT8] = sub {
     my $self = shift;
     $self->_int8;
-} if defined &JOF_INT8;
+} if eval "JOF_INT8";
 
 sub decode {
     my $self = shift;
@@ -100,7 +101,7 @@ sub decode {
     if($decoder) {
 	push @res, $decoder->($self);
     } else {
-	warn "No decoder for $type yet!\n";
+	warn "No decoder for $type yet for ", $op->id, "!\n";
     }
     $self->{pc} += ($op->len == -1) 
 	? $op->_var_len(substr $self->{bc}, $self->{pc})

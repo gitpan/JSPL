@@ -67,6 +67,7 @@ lib/JSPL/Tweaks/IO/Handle.js
 lib/JSPL/SM/Opcode.pm
 lib/JSPL/SM/ByteCode.pm
 lib/JSPL/Runtime/Stock.pm
+lib/JSPL/Runtime/CommonJS.pm
 lib/PerlArray.pod
 lib/PerlHash.pod
 lib/PerlObject.pod

@@ -1,4 +1,10 @@
-1.03  2010-06-xx
+1.04  2011-05-09
+    * Fix tests for newer perls
+    * Fix constant handling in SM::ByteCode
+    * Protect 'new PerlSub' with check_privileges
+    * Add a CommonJS oriented runtime
+    
+1.03  2010-06-25
     * Big rename JSP -> JSPL, to avoid clash with "JavaServer Pages".
       Its hurts but as sooner as easy.
 
@@ -37,7 +43,8 @@
 	var handler = DBI.connect(...);
 
     - New "questions free" building mechanism.
-    - Builds against SpiderMonkey 1.7.0 up to (unreleased) 1.8.5 (Gecko 1.9.3).
+    - Builds against SpiderMonkey 1.7.0 up to (unreleased) 1.8.5 as found in
+      Gecko 1.9.3.
     - Improved exception handling.
     - Perl can access and manipulate JavaScript's 'this'.
     - Full support for utf8 even when SpiderMonkey wasn't compiled with support

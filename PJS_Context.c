@@ -3,6 +3,10 @@
 GV *PJS_Context_SV = NULL;
 GV *PJS_This = NULL;
 
+JSRuntime *plGRuntime = NULL;
+JSPrincipals *gMyPri = NULL;
+
+#ifndef PJS_CONTEXT_IN_PERL
 /* Global class, does nothing */
 static JSClass global_class = {
     "global", JSCLASS_GLOBAL_FLAGS,
@@ -10,6 +14,7 @@ static JSClass global_class = {
     JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,   JS_FinalizeStub,
     JSCLASS_NO_OPTIONAL_MEMBERS
 };
+#endif
 
 static void
 perl_class_finalize (
@@ -29,9 +34,17 @@ perl_class_finalize (
     pcx->pvisitors = NULL;
     JS_SetReservedSlot(cx, object, 1, JSVAL_VOID);
     pcx->flags = NULL;
-#ifndef PJS_CONTEXT_IN_PERL
+#ifdef PJS_CONTEXT_IN_PERL
+    {
+	SV *method = newSVpvf("JSPL::Context::_destroy(%ld)", (IV)pcx); 
+	eval_sv(method, 1);
+	sv_free(method);
+	assert(pcx->cx==NULL);
+    }
+#else
     JS_SetContextPrivate(cx, NULL);
 #endif
+    PJS_DEBUG("JSPL Context finalized\n");
 }
 
 JSClass perl_class = {
@@ -56,7 +69,7 @@ PJS_InitPerlClasses(pTHX_ PJS_Context *pcx, JSObject *gobj)
                       OBJECT_TO_JSVAL(perl), NULL, NULL, JSPROP_PERMANENT) &&
        (pcx->pvisitors = JS_NewObject(cx, NULL, NULL, perl)) &&
        JS_SetReservedSlot(cx, perl, 0, OBJECT_TO_JSVAL(pcx->pvisitors)) &&
-       (pcx->flags = JS_NewObject(cx, NULL,  NULL, NULL)) &&
+       (pcx->flags = JS_NewObject(cx, NULL,  NULL, perl)) &&
        JS_SetReservedSlot(cx, perl, 1, OBJECT_TO_JSVAL(pcx->flags))
     ) {
 #ifdef PJS_CONTEXT_IN_PERL
@@ -112,14 +125,22 @@ js_error_reporter(
   Create PJS_Context structure
 */
 PJS_Context *
-PJS_CreateContext(pTHX_ PJS_Runtime *rt, SV *ref) {
+PJS_CreateContext(pTHX_ PJS_Runtime *rt, SV *ref, JSContext *imported) {
     PJS_Context *pcx;
     JSObject *gobj;
 
-    Newz(1, pcx, 1, PJS_Context);
+    Newxz(pcx, 1, PJS_Context);
     if(!pcx)
         croak("Failed to allocate memory for PJS_Context");
         
+#ifdef PJS_CONTEXT_IN_PERL
+    if(!imported)
+	croak("JSPL::Context::create: need a JSContext to wrap!\n");
+
+    pcx->cx = imported;
+#else
+    if(imported)
+	croak("JSPL::Context::create: can't import a context!\n");
     pcx->cx = JS_NewContext(rt->rt, 8192);
 
     if(!pcx->cx) {
@@ -127,7 +148,10 @@ PJS_CreateContext(pTHX_ PJS_Runtime *rt, SV *ref) {
         croak("Failed to create JSContext");
     }
     PJS_BeginRequest(pcx->cx);
-
+#endif
+#ifdef PJS_CONTEXT_IN_PERL
+    gobj = JS_GetGlobalObject(pcx->cx);
+#else
     JS_SetOptions(pcx->cx, JSOPTION_DONT_REPORT_UNCAUGHT);
     JS_SetErrorReporter(pcx->cx, &js_error_reporter);
 
@@ -140,6 +164,7 @@ PJS_CreateContext(pTHX_ PJS_Runtime *rt, SV *ref) {
         PJS_DestroyContext(aTHX_ pcx);
         croak("Standard classes not loaded properly.");
     }
+#endif
 
     pcx->rt = rt;
     if(ref && SvOK(ref))
@@ -215,12 +240,16 @@ void PJS_DestroyContext(pTHX_ PJS_Context *pcx) {
 		// TODO: Assert needed?
 	    }
 	}
+#ifndef PJS_CONTEXT_IN_PERL
 	JS_SetErrorReporter(cx, NULL);
 	JS_ClearScope(cx, JS_GetGlobalObject(cx));
 	JS_GC(cx);
 	pcx->cx = NULL; /* Mark global clean */
 	PJS_EndRequest(cx);
 	JS_DestroyContext(cx);
+#else
+	pcx->cx = NULL;
+#endif
 	len = hv_iterinit(hv);
 	// warn("Orphan jsvisitors: %d\n", len);
 	sv_free((SV *)hv);
@@ -350,7 +379,11 @@ PJS_setFlag(
     const char *flag,
     JSBool val
 ) {
-    return JS_DefineProperty(PJS_getJScx(pcx), pcx->flags, flag,
+    dTHX;
+    JSContext *cx = PJS_getJScx(pcx);
+    JSObject *flags = pcx->flags;
+    if(!cx || !flags) croak("Flags missing(S)!\n");
+    return JS_DefineProperty(cx, flags, flag,
 	                     val ? JSVAL_TRUE : JSVAL_FALSE,
 		             NULL, NULL,  0);
 }
@@ -360,8 +393,12 @@ PJS_getFlag(
     PJS_Context *pcx,
     const char *flag
 ) {
+    dTHX;
     jsval val;
-    JS_LookupProperty(PJS_getJScx(pcx), pcx->flags, flag, &val);
+    JSContext *cx = PJS_getJScx(pcx);
+    JSObject *flags = pcx->flags;
+    if(!cx || !flags) warn("Flags missing(G)!\n");
+    JS_LookupProperty(PJS_getJScx(pcx), flags, flag, &val);
     return !JSVAL_IS_VOID(val) && JSVAL_TO_BOOLEAN(val);
 }
 

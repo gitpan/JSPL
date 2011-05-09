@@ -24,22 +24,23 @@ struct PJS_Context {
     /* Referece to hi-level RT */
     SV  *rrt;		    
 
+    /* A hash for perl visitors to js */
+    HV *jsvisitors;
+
+    /* For GC */
+    int svconv;
+
+    
+    /* JSObject for js visitors to perl */
+    JSObject *pvisitors;
+
     /* Set to a SVt_PVCV if we have an branch handler
      * Used by both jsc_set_branch_handler and jsc_set_operation_callback
      */
     SV *branch_handler;
 
-    /* JSObject for js visitors to perl */
-    JSObject *pvisitors;
-
-    /* A hash for perl visitors to js */
-    HV *jsvisitors;
-    
     /* Keep in JS, jsvals are cheaper than SVs */
     JSObject *flags; 
-
-    /* For GC */
-    int svconv;
 };
 
 struct jsv_mg {
@@ -85,7 +86,7 @@ PJS_IsPerlVisitor(pTHX_ PJS_Context *pcx, SV *sv);
     @result A pointer to a PJS_Context structure if successfull.
 */
 PJS_EXTERN PJS_Context *
-PJS_CreateContext(pTHX_ PJS_Runtime *runtime, SV *ref);
+PJS_CreateContext(pTHX_ PJS_Runtime *runtime, SV *ref, JSContext *imported);
 
 #ifdef JS_HAS_BRANCH_HANDLER
 PJS_EXTERN JSBool
@@ -116,6 +117,9 @@ PJS_setFlag(PJS_Context *fromContext, const char *flag, JSBool val);
 
 PJS_EXTERN GV *PJS_Context_SV;
 PJS_EXTERN GV *PJS_This;
+
+PJS_EXTERN JSRuntime *plGRuntime;
+PJS_EXTERN JSPrincipals *gMyPri;
 
 #ifdef __cplusplus
 }

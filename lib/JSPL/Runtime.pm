@@ -13,6 +13,7 @@ require JSPL::Controller;
 our @ISA = qw(JSPL::RawRT);
 our $MAXBYTES = 1024 ** 2 * 4;
 our %Plugins = ();
+my $Stock;
 
 sub new {
     my $pkg = shift;
@@ -22,10 +23,11 @@ sub new {
 sub create_context {
     my $self = shift;
     my $plugin = shift;
-    my $ctx = JSPL::Context->new($self);
+    my $ctx = JSPL::Context->new($self, @_);
     if($plugin) {
-	if($Plugins{$plugin}) {
-	    $Plugins{$plugin}->($ctx);
+	$Stock = $plugin;
+	if(my $plug = $Plugins{$plugin}) {
+	    $plug->{ctxcreate}->($ctx) if $plug->{ctxcreate};
 	} else {
 	    croak "No plugin '$plugin' installed\n";
 	}
@@ -39,7 +41,8 @@ sub JSPL::stock_context {
     my $clone;
     if(!defined $stock_ctx) {
 	$stock ||= 'stock';
-	require JSPL::Runtime::Stock if $stock eq 'stock';
+	eval "require JSPL::Runtime::\u$stock;"
+	    or croak($@);
 	my $rt = __PACKAGE__->new();
 	$clone = $stock_ctx = $rt->create_context($stock);
 	Scalar::Util::weaken($stock_ctx);
@@ -47,6 +50,10 @@ sub JSPL::stock_context {
 	$clone = $stock_ctx;
     }
     return $clone;
+}
+
+sub _getplug {
+    $Plugins{$Stock};
 }
 
 1;

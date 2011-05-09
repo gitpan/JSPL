@@ -2,6 +2,8 @@
 TODO
 ====
 
+Support new SpiderMonkey v185, hard work in progress
+
 We plan the following road-map for JSPL 1.x, in no particular order:
 
 - Test building in more platforms.
@@ -9,7 +11,6 @@ We plan the following road-map for JSPL 1.x, in no particular order:
 - Extend security model
 - Write a small tutorial for javascript users about using CPAN modules.
 - Write more examples
-- Complete separation of "engine" vs "glue" code, to allow a SM based bootstrap
 - Complete documentation.
 - Testing, testing and Testing.
 

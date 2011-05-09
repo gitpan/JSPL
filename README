@@ -75,6 +75,8 @@ Prerequisites
 To compile and install JSPL, make sure you have SpiderMonkey's headers
 and libraries installed.
 
+NOTE: The new released SM v1.8.5, found with gecko 2.0 (FF 4.0) isn't supported yet!
+
 If you have build your own SpiderMonkey from sources, set the environment
 variable 'JS_SRC' to the path of your build directory, normally one below
 SM's 'js/src' directory, and skip to "Building" below.
@@ -139,7 +141,7 @@ comments, feature requests, etc., to  Salvador Ortiz <sortiz@cpan.org>
 COPYRIGHT
 ---------
 
-Copyright (c) 2009 - 2010, Salvador Ortiz <sortiz@cpan.org>.
+Copyright (c) 2009 - 2011, Salvador Ortiz <sortiz@cpan.org>.
 All rights reserved.
 
 Some code adapted from JavaScript module

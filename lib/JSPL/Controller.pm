@@ -2,6 +2,7 @@ package JSPL::Controller;
 use strict;
 use warnings;
 our @ISA = qw(JSPL::Object);
+use Scalar::Util();
 use Carp();
 
 sub JSPL::Context::get_controller {
@@ -41,6 +42,7 @@ sub _addtweaks {
     $search =~ s/::/\//g;
     my $tweaks = undef;
     ITER: {
+	local $self->__context->{Restricted} = 0;
 	for my $prefix (@INC) {
 	    $realfilename = "$prefix/JSPL/Tweaks/$search";
 	    if(-f "$realfilename.js") {
@@ -214,6 +216,7 @@ package
 sub _const_sub { # Method call
     my $code = $_[1];
     my $frame = $] > 5.009 ? 1 : 2;
+    JSPL::Context->check_privileges;
     my($package, $file, $line, $hints, $bitmask) = (caller $frame)[0,1,2,8,9];
     # warn sprintf("SBB: $package,$file,$line,'$code', H: %x, BM: %s\n", $hints,$bitmask);
     my $cr = eval join("\n",
@@ -239,16 +242,22 @@ sub toSource {
 
 sub call {
     my $code = $JSPL::This;
-    local $JSPL::This = shift;
+    local $JSPL::This = $_[0];
+    shift unless(Scalar::Util::blessed($_[0]));
     $code->(@_);
 }
 
 sub apply {
-    # FIXME, semantic bug
     my $this = shift;
+    my $arg = shift;
+    if(ref($arg) eq 'HASH') { # Hack arround 'arguments' being an Object
+	$arg = tied(%$arg);
+	my @arg = map JSPL::Array::FETCH($arg, $_), 0 .. $arg->{'length'}-1;
+	$arg = \@arg;
+    }
     my $code = $JSPL::This;
     local $JSPL::This = $this;
-    $code->( $this, @{$_[0]} );
+    Scalar::Util::blessed($this) ? $code->($this, @{$arg} ) : $code->(@{$arg});
 }
 
 package

@@ -9,7 +9,7 @@ push @JSPL::Context::CARP_NOT, __PACKAGE__;
 
 my %services = (
     'Env'    => \%ENV,
-    'warn'   => sub { carp @_, "\n" },
+    'warn'   => sub { carp @_; },
     'print'  => sub { print map defined($_) ? $_ : 'undefined', @_ },
     'say'    => sub { print map defined($_) ? $_ : 'undefined', @_ , "\n" },
     'sprintf'=> sub {
@@ -52,7 +52,12 @@ my %services = (
     'unlink' => sub {
 	JSPL::Context->check_privileges;
 	unlink @_;
-    }
+    },
+    'sysvar' => {
+	PID => \$$,
+	Version => \$^V, 
+	INC => \@INC,
+    }, 
 );
 
 $services{'require'} = sub {
@@ -62,15 +67,30 @@ $services{'require'} = sub {
 
 sub _ctxcreate {
     my $ctx = shift;
-    my $sys = $ctx->jsc_eval($ctx->get_global, q|var Sys = this; Sys;|);
+    my $sys = $JSPL::_gruntime
+	? $ctx->jsc_eval($ctx->get_global, q|perl;|)
+	: $ctx->jsc_eval($ctx->get_global, q|var Sys = this; Sys;|);
     for(keys %services) {
 	$sys->{$_} = $services{$_};
     }
     my $ctl = $ctx->get_controller;
-    $ctl->install('Sys.IO.File' => 'IO::File');
+    my $prefix = $JSPL::_gruntime ? 'perl' : 'Sys';
+    $ctl->install("$prefix.IO.File" => 'IO::File');
 }
 
-$JSPL::Runtime::Plugins{stock} = \&_ctxcreate;
+sub _mainprg {
+    my $ctx = shift;
+    my $prgname = shift;
+    $ctx->bind_all(
+	Argv => \@ARGV,
+	PrgName => \$prgname
+    );
+}
+
+$JSPL::Runtime::Plugins{stock} = {
+    ctxcreate => \&_ctxcreate,
+    main => \&_mainprg,
+};
 
 1;
 __END__

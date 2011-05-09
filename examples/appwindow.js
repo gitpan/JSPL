@@ -54,6 +54,10 @@ var menuitem_cb = show_dialog(function(action, win) {
     };
 });
 
+var exit_cb = function () {
+    Gtk2.main_quit(); 
+};
+
 var toolbar_cb = show_dialog(function(button, win) {
     return {
 	msg: "you selected a toolbar button",
@@ -116,6 +120,7 @@ register_stock_icons ();
 
 var window = new Gtk2.Window('toplevel');
 window.set_title ("Application Window");
+window.signal_connect('destroy', exit_cb);
 
 var table = new Gtk2.Table(1, 4, Glib.FALSE);
 window.add(table);
@@ -132,7 +137,7 @@ var entries = [
   [ "Open",   'gtk-open', "_Open",  "<control>O", "Open a file",       menuitem_cb ], 
   [ "Save",   'gtk-save', "_Save",  "<control>S", "Save current file", menuitem_cb ],
   [ "SaveAs", 'gtk-save', "Save _As...", undefined,   "Save to a file", menuitem_cb ],
-  [ "Quit",   'gtk-quit', "_Quit",  "<control>Q", "Quit",              menuitem_cb ],
+  [ "Quit",   'gtk-quit', "_Quit",  "<control>Q", "Quit",              exit_cb ],
   [ "About",  undefined,      "_About", "<control>A", "About",             menuitem_cb ],
   [ "Logo",   "demo-gtk-logo", undefined, undefined,      "GTK+",              menuitem_cb ],
 ];

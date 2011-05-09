@@ -25,10 +25,10 @@ is($cx1->eval("1;"), 1, "Positive integers");
 is($cx1->eval("5000000000;"), 5_000_000_000, "Really big integers");
 
 # Doubles
-is($cx1->eval("-1.1;"), -1.1, "Negative doubles");
 is($cx1->eval("0.0;"), 0.0, "Zero doubles");
-is($cx1->eval("1.1;"), 1.1, "Positive doubles");
-is($cx1->eval("5000000000.5;"), 5000000000.5, "Really big doubles");
+cmp_ok($cx1->eval("1.1;"), '==', 1.1, "Positive doubles");
+cmp_ok($cx1->eval("-1.1;"), '==', -1.1, "Negative doubles");
+cmp_ok($cx1->eval("5000000000.5;"),'==', 5000000000.5, "Really big doubles");
 
 # Strings
 is($cx1->eval(q{ ""; }), "", "Empty string");

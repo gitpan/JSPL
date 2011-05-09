@@ -16,8 +16,8 @@ use JSPL;
 
     ok(!$JSPL::This, "No 'this' yet");
     $ctx->eval(q| check_this(this, "when global", 'global') |);
-    $ctx->eval(q| check_this.call(this, this, "call global", 'global') |);
-    $ctx->eval(q| check_this.apply(this, ["call global", 'global'] ) |);
+    $ctx->eval(q| check_this.call(this, "call global", 'global') |);
+    $ctx->eval(q| check_this.apply(this, ["apply global", 'global'] ) |);
     $ctx->eval(q| foo = {}; foo.check = check_this; |);
     $ctx->eval(q| foo.check(foo, "when object", 'Object'); |);
     ok(!$JSPL::This, "Not 'this' now");

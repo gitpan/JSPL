@@ -30,13 +30,51 @@ my %Flags = (
 $Flags{JITEnable} = 0 if JSPL->does_support_jit;
 
 sub new {
-    my ($pkg, $runtime) = @_;
-    my $self = create($runtime);
+    my $pkg = shift;
+    my $runtime = shift;
+    my $self = create($runtime, @_);
     my $id = $$self;
     $Contexts{$id} = $self;
     weaken($Contexts{$id});
     $self->{$_} = $Flags{$_} for keys %Flags;
     return $self;
+}
+
+sub _error_mangler {
+    my $msg = shift;
+    if($msg =~ /\n at -e line 0\n$/) {
+	$msg =~ s/ at -e line 0\n$//;
+    } elsif($msg =~ /at -e line 0/) {
+	my $xpc = $Components::classes{'@mozilla.org/js/xpc/XPConnect;1'}
+	    ->getService($Components::interfaces{'nsIXPConnect'});
+	my $stf = $xpc->CurrentJSStack();
+	$stf->QueryInterface($Components::interfaces{'nsIStackFrame'});
+	my $end = "at " . $stf->filename . " line " . ($stf->lineNumber-1);
+	$msg =~ s/at -e line 0/$end/;
+    }
+    warn($msg);
+}
+
+sub JSPL::_wrapctx {
+    my $ictx = shift;
+    my $prin = shift;
+    my $stock = shift || 'stock';
+    my $rt = bless JSPL::RawRT::create(0), 'JSPL::Runtime';
+    eval "require JSPL::Runtime::\u$stock;"
+	    or croak($@);
+    my $self = $rt->create_context($stock, $ictx, $prin);
+    $self->{"Restricted"} = 0;
+    $Contexts{$$self} = $self; # Unweaken
+    $SIG{__WARN__} = \&_error_mangler;
+    warn("Imported context ready\n");
+}
+
+sub _destroy {
+    my $ctx = shift;
+    croak("Context $ctx not registered\n")
+	unless exists $Contexts{$ctx};
+    $Contexts{$ctx} = undef;
+    delete $Contexts{$ctx};
 }
 
 sub eval {
@@ -253,6 +291,7 @@ sub compile_file {
 	my($self, $key, $val) = @_;
 	croak "There isn't a flag '$key' in context\n" unless exists $Flags{$key};
 	if($key =~ /^(.+)Enable/) {
+	    return if $JSPL::_gruntime; # Don't play with foreing context
 	    my $op = lc($1);
 	    my $ops = $self->jsc_get_options;
 	    if($val) { $ops |= $options_by_tag{$op} }
@@ -267,12 +306,18 @@ sub compile_file {
 	my($self, $key) = @_;
 	croak "There isn't a flag '$key' in context\n" unless exists $Flags{$key};
 	if($key =~ /^(.+)Enable/) {
+	    return if $JSPL::_gruntime; # Don't play with foreing context
 	    my $op = lc($1);
 	    my $ops = $self->jsc_get_options;
 	    return $ops & $options_by_tag{$op} ? 1 : 0;
 	}
 	$self->jsc_get_flag($key);
     }
+}
+
+sub JSPL::_this {
+    my $nthis = current->jsvisitor($JSPL::This);
+    $nthis || $JSPL::This;
 }
 
 1;

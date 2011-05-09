@@ -250,7 +250,9 @@ WriteMakefile(
     DEFINE          => "$defines",
     LIBS            => "$libdirs",
     INC             => $incdirs,
-    LICENSE         => "perl",
+    (
+	eval { ExtUtils::MakeMaker->VERSION(6.3001) } ? (LICENSE => "perl") : () 
+    ),
     EXE_FILES	    => [ 'bin/jspl' ],
     OBJECT          => q/$(O_FILES)/,
     CC              => $CC,
@@ -260,7 +262,9 @@ WriteMakefile(
 	$NAME."::Context::Timeout" => [], $NAME."::SM::Opcode" => [],
     },
     MYEXTLIB        => $myextlib,
-    ($CC eq 'c++' ? (XSOPT => '-C++', LD => $CC) : ()),
+    (
+	$CC eq 'c++' ? (XSOPT => '-C++', LD => $CC) : ()
+    ),
     clean => { FILES => [ 'JS_Env.h', 'const-c.inc', 'const-xs.inc',
 	                  'op-const-c.inc', 'op-const-xs.inc'] },
 );

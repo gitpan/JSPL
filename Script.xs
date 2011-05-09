@@ -120,7 +120,7 @@ jss_getobject(pcx, obj, index)
 	    JSObjectArray *objarr =
 		(JSObjectArray *)((uint8 *)script + script->objectsOffset);
 	    if(index < objarr->length)
-		RETVAL = sv_setref_pv(newSV(0), NAMESPACE"::RawObj",
+		RETVAL = sv_setref_pv(newSV(0), PJS_RAW_OBJECT,
 		 	              (void *)objarr->vector[index]);
 	}
 #endif
