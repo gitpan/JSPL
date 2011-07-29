@@ -1,11 +1,19 @@
 #!perl
-
-use Test::More tests => 106;
-
+use Test::More tests => 107;
 use strict;
-use warnings;
 
 use JSPL qw(:primitives);
+
+my $LoDo;
+use Config;
+BEGIN {
+    if ($Config{uselongdouble} &&
+	$Config{doublesize} != $Config{longdblsize})
+    {
+	$LoDo = 1; # Expect some precision lost
+    }
+}
+use warnings;
 
 my $rt1 = JSPL::Runtime->new();
 {
@@ -26,8 +34,15 @@ is($cx1->eval("5000000000;"), 5_000_000_000, "Really big integers");
 
 # Doubles
 is($cx1->eval("0.0;"), 0.0, "Zero doubles");
-cmp_ok($cx1->eval("1.1;"), '==', 1.1, "Positive doubles");
-cmp_ok($cx1->eval("-1.1;"), '==', -1.1, "Negative doubles");
+if($LoDo) {
+    is(sprintf('%.6f', $cx1->eval("1.1;")), sprintf('%.6f', 1.1), "Positive doubles");
+    is(sprintf('%.6f', $cx1->eval("-1.1;")), sprintf('%.6f', -1.1), "Negative doubles");
+    ok(!JSPL::exact_doubles(), "Precision lost detectable");
+} else {
+    cmp_ok($cx1->eval("1.1;"), '==', 1.1, "Positive doubles");
+    cmp_ok($cx1->eval("-1.1;"), '==', -1.1, "Negative doubles");
+    ok(JSPL::exact_doubles(), "Exact doubles");
+}
 cmp_ok($cx1->eval("5000000000.5;"),'==', 5000000000.5, "Really big doubles");
 
 # Strings

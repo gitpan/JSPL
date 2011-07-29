@@ -6,10 +6,10 @@ extern JSClass perl_class;
 
 static const char *PJS_EXPORT_PROP = "__export__";
 
-static JSBool perlpackage_add(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
-static JSBool perlpackage_set(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
-static JSBool perlpackage_get(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
-static JSBool perlpackage_resolve(JSContext *, JSObject *, jsval, uintN, JSObject **);
+static JSBool perlpackage_add(JSContext *cx, JSObject *obj, pjsid id, jsval *vp);
+static JSBool perlpackage_set(JSContext *cx, JSObject *obj, pjsid id, DEFSTRICT_ jsval *vp);
+static JSBool perlpackage_get(JSContext *cx, JSObject *obj, pjsid id, jsval *vp);
+static JSBool perlpackage_resolve(JSContext *, JSObject *, pjsid, uintN, JSObject **);
 
 #if !defined(gv_const_sv)
 static SV *
@@ -39,7 +39,7 @@ static JSBool
 perlpackage_add(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
     jsval *vp
 ) {
     dTHX;
@@ -47,14 +47,20 @@ perlpackage_add(
     char *key;
     SV *sv;
     jsval temp;
-    JSBool can, ok = TRUE;
+    JSBool can, ok = JS_TRUE;
     
-    if(!JSVAL_IS_STRING(id))
+    if(!PJSID_IS(STRING, id))
 	return JS_TRUE;
 
     assert(ref != NULL);
 
-    key = JS_GetStringBytes(JSVAL_TO_STRING(id));
+
+#if JS_VERSION < 185
+    key = JS_GetStringBytes(PJSID_TO(STRING, id));
+#else
+    JSAutoByteString bytes(cx, PJSID_TO(STRING, id));
+    key = bytes.ptr();
+#endif
     PJS_DEBUG1("In PC add for '%s'\n", key);
 
     if(*key == '$' || JSVAL_IS_VOID(*vp) || JSVAL_IS_NULL(*vp) ||
@@ -102,7 +108,8 @@ static char* form_name(const char *package, const char *key) {
 static JSBool perlpackage_set(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
+    DEFSTRICT_
     jsval *vp
 ) {
     dTHX;
@@ -112,12 +119,17 @@ static JSBool perlpackage_set(
     jsval temp;
     JSBool can;
     
-    if(!JSVAL_IS_STRING(id))
+    if(!PJSID_IS(STRING, id))
 	return JS_TRUE;
 
     assert(ref != NULL);
     
-    key = JS_GetStringBytes(JSVAL_TO_STRING(id));
+#if JS_VERSION < 185
+    key = JS_GetStringBytes(PJSID_TO(STRING, id));
+#else
+    JSAutoByteString bytes(cx, PJSID_TO(STRING, id));
+    key = bytes.ptr();
+#endif
     package = HvNAME((HV *)SvRV(ref));
 
     if(*key == '$') {
@@ -142,7 +154,7 @@ static JSBool perlpackage_set(
 static JSBool perlpackage_get(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
     jsval *vp
 ) {
     dTHX;
@@ -150,10 +162,8 @@ static JSBool perlpackage_get(
     const char *key;
     const char *package;
     
-    if(!JSVAL_IS_STRING(id)) 
+    if(!PJSID_IS(STRING, id)) 
 	return JS_TRUE;
-
-    key = JS_GetStringBytes(JSVAL_TO_STRING(id));
 
     while(obj) {
 	ref = (SV *)JS_GetInstancePrivate(cx, obj, &perlpackage_class, NULL);
@@ -162,6 +172,12 @@ static JSBool perlpackage_get(
     }
     if(!ref) return JS_TRUE;
 
+#if JS_VERSION < 185
+    key = JS_GetStringBytes(PJSID_TO(STRING, id));
+#else
+    JSAutoByteString bytes(cx, PJSID_TO(STRING, id));
+    key = bytes.ptr();
+#endif
     package = HvNAME((HV *)SvRV(ref));
 
     if(*key == '$') {
@@ -177,7 +193,7 @@ static JSBool perlpackage_get(
 static JSBool perlpackage_resolve(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
     uintN flags,
     JSObject **objp
 ) {
@@ -191,10 +207,15 @@ static JSBool perlpackage_resolve(
     jsval temp;
     JSBool ok = TRUE;
     
-    if(!JSVAL_IS_STRING(id))
+    if(!PJSID_IS(STRING, id))
 	return JS_TRUE;
 
-    key = JS_GetStringBytes(JSVAL_TO_STRING(id));
+#if JS_VERSION < 185
+    key = JS_GetStringBytes(PJSID_TO(STRING, id));
+#else
+    JSAutoByteString bytes(cx, PJSID_TO(STRING, id));
+    key = bytes.ptr();
+#endif
     if(strEQ(key, PJS_PASSPORT_PROP)) {
 	*objp = obj;
 	return JS_TRUE;
@@ -280,13 +301,18 @@ static JSBool
 perlpackage_eget(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
     jsval *vp
 ) {
     dTHX;
     SV *ref = (SV *)JS_GetInstancePrivate(cx, obj, &perlpackage_class, NULL);
     const char *package = HvNAME((HV *)SvRV(ref));
-    char *key = JS_GetStringBytes(JSVAL_TO_STRING(id));
+#if JS_VERSION < 185
+    char *key = JS_GetStringBytes(PJSID_TO(STRING, id));
+#else
+    JSAutoByteString bytes(cx, PJSID_TO(STRING, id));
+    char *key = bytes.ptr();
+#endif
     
     if(strEQ(key, PJS_EXPORT_PROP)) {
 	char *name = form_name(package, "__allow_js_export");
@@ -364,12 +390,20 @@ char *
 PJS_GetPackageName(pTHX_ JSContext *cx, JSObject *package)
 {
     SV *ref = (SV *)JS_GetInstancePrivate(cx, package, &perlpackage_class, NULL);
-    if(ref) return HvNAME((HV *)SvRV(ref));
+    if(ref) return savepv(HvNAME((HV *)SvRV(ref)));
     else {
 	jsval pkg;
 	if(JS_LookupProperty(cx, package, PJS_PACKAGE_PROP, &pkg) &&
-	   JSVAL_IS_STRING(pkg))
+	   JSVAL_IS_STRING(pkg)) {
+#if JS_VERSION < 185
 	    return JS_GetStringBytes(JSVAL_TO_STRING(pkg));
+#else
+	    char *pkgname = JS_EncodeString(cx, JSVAL_TO_STRING(pkg));
+	    char *copy = savepv(pkgname);
+	    JS_free(cx, pkgname);
+	    return copy;
+#endif
+	}
     }
     return NULL;
 }
@@ -377,7 +411,7 @@ PJS_GetPackageName(pTHX_ JSContext *cx, JSObject *package)
 static JSBool perlobj_get(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
     jsval *vp
 ) {
     // dTHX;
@@ -393,17 +427,18 @@ static JSBool perlobj_get(
 static JSBool perlobj_set(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
+    DEFSTRICT_
     jsval *vp
 ) {
     dTHX;
     SV *ref = (SV *)JS_GetPrivate(cx, obj);
     SV *sv = SvRV(ref);
     JSBool ok = TRUE;
-    if(SvTYPE(sv) == SVt_PVHV && JSVAL_IS_STRING(id)) {
+    if(SvTYPE(sv) == SVt_PVHV && PJSID_IS(STRING, id)) {
 	SV *svk;
 	ENTER; SAVETMPS;
-	svk = PJS_JSString2SV(aTHX_ JSVAL_TO_STRING(id));
+	svk = PJS_JSString2SV(aTHX_ cx, PJSID_TO(STRING, id));
 	sv_2mortal(svk);
 	if(hv_exists_ent((HV *)sv, svk, 0)) {
 	    SV *nsv;
@@ -416,7 +451,7 @@ static JSBool perlobj_set(
 	FREETMPS; LEAVE;
     }
     else if(SvTYPE(sv) == SVt_PVAV) {
-	return (perlarray_class.setProperty)(cx, obj, id, vp);
+	return (perlarray_class.setProperty)(cx, obj, PASSTRICT_ id, vp);
     }
     return ok;
 }

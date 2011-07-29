@@ -2,8 +2,6 @@
 TODO
 ====
 
-Support new SpiderMonkey v185, hard work in progress
-
 We plan the following road-map for JSPL 1.x, in no particular order:
 
 - Test building in more platforms.

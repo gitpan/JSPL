@@ -1,10 +1,20 @@
 #!perl
 use Test::More tests => 199;  # last test to print
-
 use strict;
-use warnings;
 
 use JSPL;
+
+my $LoDo;
+use Config;
+BEGIN {
+    if($Config{uselongdouble} &&
+       $Config{doublesize} != $Config{longdblsize})
+    {
+	$LoDo = 1; # Expect some precision lost
+    }
+}
+use warnings;
+
 my $ctx = JSPL->stock_context;
 $ctx->bind_all(
     ok => \&ok, is => \&is,
@@ -42,7 +52,7 @@ $foo = "foo";
 $is_scalar->(\$foo, $foo, 'string');
 $foo = 1000;
 $is_scalar->(\$foo, $foo, 'number');
-$foo = 3.14159265;
+$foo = $LoDo ? 0.0 : 3.14159265;
 $is_scalar->(\$foo, $foo, 'number');
 $foo = \"foo";
 $is_scalar->(\$foo, $foo, 'object');

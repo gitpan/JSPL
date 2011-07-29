@@ -59,7 +59,7 @@
 PJS_EXTERN JSObject*
 PJS_GetScope(pTHX_ JSContext *cx, SV *sv);
 
-PJS_EXTERN JSScript *
+PJS_EXTERN PJS_Script *
 PJS_MakeScript(pTHX_ JSContext *cx, JSObject *scope, SV *source, const char *name);
 
 #endif

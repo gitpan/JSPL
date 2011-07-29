@@ -17,7 +17,7 @@ jss_execute(pcx, scope, obj)
 	cx = PJS_getJScx(pcx);
 	scope = PJS_GetScope(aTHX_ cx, ST(1));
 
-	if(!JS_ExecuteScript(cx, scope, (JSScript *)JS_GetPrivate(cx, obj), &RETVAL)) {
+	if(!JS_ExecuteScript(cx, scope, PJS_O2S(cx,obj), &RETVAL)) {
 	    PJS_report_exception(aTHX_ pcx);
 	    XSRETURN_UNDEF;
 	}
@@ -32,14 +32,14 @@ jss_compile(pcx, scope, source, name = "")
     const char *name;
     PREINIT:
 	JSContext *cx;
-        JSScript *script;
+        PJS_Script *script;
 	JSObject *newobj;
     CODE:
 	cx = PJS_getJScx(pcx);
 	scope = PJS_GetScope(aTHX_ cx, ST(1));
 
 	if(!(script = PJS_MakeScript(aTHX_ cx, scope, source, name)) ||
-	   !(newobj = JS_NewScriptObject(cx, script)) ||
+	   !(newobj = PJS_S2O(cx, script)) ||
 	   !PJS_ReflectJS2Perl(aTHX_ cx, OBJECT_TO_JSVAL(newobj), &RETVAL, 0)
 	) {
 	    PJS_report_exception(aTHX_ pcx);
@@ -82,6 +82,7 @@ jss_main(pcx, obj)
     OUTPUT:
 	RETVAL
 
+#if JS_VERSION < 185
 SV *
 jss_getatom(pcx, obj, index)
     JSPL::Context pcx;
@@ -126,3 +127,5 @@ jss_getobject(pcx, obj, index)
 #endif
     OUTPUT:
 	RETVAL
+
+#endif

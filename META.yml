@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               JSPL
-version:            1.04
+version:            1.05
 abstract:           A bridge between JavaScript and Perl languages
 author:
     - Salvador Ortiz <sortiz@cpan.org>

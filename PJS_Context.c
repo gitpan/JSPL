@@ -10,7 +10,7 @@ JSPrincipals *gMyPri = NULL;
 /* Global class, does nothing */
 static JSClass global_class = {
     "global", JSCLASS_GLOBAL_FLAGS,
-    JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub,
+    JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub,  PJS_SetterPropStub,
     JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,   JS_FinalizeStub,
     JSCLASS_NO_OPTIONAL_MEMBERS
 };
@@ -53,7 +53,7 @@ JSClass perl_class = {
     JSCLASS_HAS_PRIVATE |
 #endif
     JSCLASS_HAS_RESERVED_SLOTS(2),
-    JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub,
+    JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub,  PJS_SetterPropStub,
     JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,   perl_class_finalize,
     JSCLASS_NO_OPTIONAL_MEMBERS
 };
@@ -156,7 +156,7 @@ PJS_CreateContext(pTHX_ PJS_Runtime *rt, SV *ref, JSContext *imported) {
     JS_SetErrorReporter(pcx->cx, &js_error_reporter);
 
 #if JS_VERSION == 185
-    gobj = JS_NewGlobalObject(pcx->cx, &global_class);
+    gobj = JS_NewCompartmentAndGlobalObject(pcx->cx, &global_class, NULL);
 #else
     gobj = JS_NewObject(pcx->cx, &global_class, NULL, NULL);
 #endif
@@ -164,7 +164,7 @@ PJS_CreateContext(pTHX_ PJS_Runtime *rt, SV *ref, JSContext *imported) {
         PJS_DestroyContext(aTHX_ pcx);
         croak("Standard classes not loaded properly.");
     }
-#endif
+#endif /* PJS_CONTEXT_IN_PERL */
 
     pcx->rt = rt;
     if(ref && SvOK(ref))

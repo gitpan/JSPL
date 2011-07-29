@@ -13,7 +13,7 @@ static JSBool
 perlarray_get(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
     jsval *vp
 ) {
     dTHX;
@@ -23,8 +23,8 @@ perlarray_get(
 
     PJS_ARRAY_CHECK
 
-    if(JSVAL_IS_INT(id)) {
-        I32 ix = JSVAL_TO_INT(id);
+    if(PJSID_IS(INT,id)) {
+        I32 ix = PJSID_TO(INT, id);
         SV **v;
 	ENTER; SAVETMPS;
         v = av_fetch(av, ix, 0);
@@ -46,7 +46,8 @@ static JSBool
 perlarray_set(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
+    DEFSTRICT_
     jsval *vp
 ) {
     dTHX;
@@ -55,8 +56,8 @@ perlarray_set(
 
     PJS_ARRAY_CHECK
 
-    if(JSVAL_IS_INT(id)) {
-        IV ix = JSVAL_TO_INT(id);
+    if(PJSID_IS(INT, id)) {
+        IV ix = PJSID_TO(INT, id);
         SV *sv;
         if(!PJS_ReflectJS2Perl(aTHX_ cx, *vp, &sv, 1)) {
             JS_ReportError(cx, "Failed to convert argument to Perl");
@@ -119,7 +120,7 @@ static JSBool
 perlarray_resolve(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
     uintN flags,
     JSObject **objp
 ) {
@@ -131,16 +132,20 @@ perlarray_resolve(
 
     PJS_ARRAY_CHECK
 
-    if(JSVAL_IS_STRING(id))
+    if(PJSID_IS(STRING, id))
 	return JS_TRUE;
 
-    if(JSVAL_IS_INT(id)) {
-	index = JSVAL_TO_INT(id);
+    if(PJSID_IS(INT, id)) {
+	index = PJSID_TO(INT, id);
 	v = av_fetch(av, index, 0);
 	if(v) {
-	    JSString *str = JS_ValueToString(cx,id);
+#if JS_VERSION < 185
+	    JSString *str = JS_ValueToString(cx, id);
 	    if(!JS_DefineProperty(cx, obj, JS_GetStringBytes(str),
 	                          JSVAL_VOID, NULL, NULL, 0))
+#else
+	    if(!JS_DefinePropertyById(cx, obj, id, JSVAL_VOID, NULL, NULL, 0))
+#endif
 		return JS_FALSE;
 	    *objp = obj;
 	}
@@ -175,11 +180,9 @@ PJS_NewPerlArray(
 static JSBool
 perlarray_push(
     JSContext *cx,
-    JSObject *obj,
-    uintN argc,
-    jsval *argv,
-    jsval *rval
+    DEFJSFFARGS_
 ) {
+    DECJSFFARGS;
     dTHX;
     SV *ref = (SV *)JS_GetPrivate(cx, obj);
     AV *av = (AV *)SvRV(ref);
@@ -195,6 +198,7 @@ perlarray_push(
 	}
 	av_push(av, sv);
     }
+    PJS_SET_RVAL(cx, INT_TO_JSVAL(av_len(av)));
     
     return JS_TRUE;
 }
@@ -202,11 +206,9 @@ perlarray_push(
 static JSBool
 perlarray_unshift(
     JSContext *cx,
-    JSObject *obj,
-    uintN argc,
-    jsval *argv,
-    jsval *rval
+    DEFJSFFARGS_
 ) {
+    DECJSFFARGS;
     dTHX;
     SV *ref = (SV *)JS_GetPrivate(cx, obj);
     AV *av = (AV *)SvRV(ref);
@@ -228,6 +230,7 @@ perlarray_unshift(
 	    }
         }
     }
+    PJS_SET_RVAL(cx, INT_TO_JSVAL(av_len(av)));
     
     return JS_TRUE;
 }
@@ -235,16 +238,15 @@ perlarray_unshift(
 static JSBool
 perlarray_shift(
     JSContext *cx,
-    JSObject *obj,
-    uintN argc,
-    jsval *argv,
-    jsval *rval
+    DEFJSFFARGS_
 ) {
+    DECJSFFARGS;
     dTHX;
     SV *ref = (SV *)JS_GetPrivate(cx, obj);
     AV *av = (AV *)SvRV(ref);
     SV *sv;
     JSBool ok;
+    argv = argv;
 
     PJS_ARRAY_CHECK
 
@@ -263,16 +265,15 @@ perlarray_shift(
 static JSBool
 perlarray_pop(
     JSContext *cx,
-    JSObject *obj,
-    uintN argc,
-    jsval *argv,
-    jsval *rval
+    DEFJSFFARGS_
 ) {
+    DECJSFFARGS;
     dTHX;
     SV *ref = (SV *)JS_GetPrivate(cx, obj);
     AV *av = (AV *)SvRV(ref);
     SV *sv;
     JSBool ok;
+    argv = argv;
 
     PJS_ARRAY_CHECK
 
@@ -292,7 +293,7 @@ static JSBool
 perlarray_proplen_get(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
     jsval *vp
 ) {
     dTHX;
@@ -310,7 +311,8 @@ static JSBool
 perlarray_proplen_set(
     JSContext *cx, 
     JSObject *obj, 
-    jsval id,
+    pjsid id,
+    DEFSTRICT_
     jsval *vp
 ) {
     dTHX;
@@ -336,21 +338,19 @@ static JSPropertySpec perlarray_props[] = {
 };
 
 static JSFunctionSpec perlarray_methods[] = {
-    {"push", perlarray_push, 1, 0, 0},
-    {"unshift", perlarray_unshift, 1, 0, 0},
-    {"shift", perlarray_shift, 0, 0, 0},
-    {"pop", perlarray_pop, 0, 0, 0},
-    {0, 0, 0, 0 ,0}
+    JS_FN("push", perlarray_push, 1, 0),
+    JS_FN("unshift", perlarray_unshift, 1, 0),
+    JS_FN("shift", perlarray_shift, 0, 0),
+    JS_FN("pop", perlarray_pop, 0, 0),
+    JS_FS_END
 };
 
 static JSBool
 PerlArray(
     JSContext *cx,
-    JSObject *obj,
-    uintN argc,
-    jsval *argv,
-    jsval *rval
+    DEFJSFSARGS_
 ) {
+    DECJSFSARGS;
     dTHX;
     AV *av = newAV();
     SV *ref = newRV_noinc((SV *)av);
@@ -358,6 +358,7 @@ PerlArray(
     JSBool ok = JS_FALSE;
     SV *sv;
 
+    if(!obj) obj = JS_NewObject(cx, &perlarray_class, NULL, NULL);
     /* If the path fails, the object will be finalized */
     JS_SetPrivate(cx, obj, (void *)newRV(&PL_sv_undef));
 
@@ -371,6 +372,7 @@ PerlArray(
 	sv_bless(ref, gv_stashpv(PerlArrayPkg,0));
 
     ok = PJS_CreateJSVis(aTHX_ cx, obj, ref) != NULL;
+    if(ok) PJS_SET_RVAL(cx, OBJECT_TO_JSVAL(obj));
     fail:
     sv_free(ref);
     return ok;

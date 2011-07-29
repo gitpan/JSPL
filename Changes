@@ -1,3 +1,7 @@
+1.05  2011-07-29
+    * Add support for released SM 1.8.5
+    * Include some workarounds for posible floating point types mismatch.
+
 1.04  2011-05-09
     * Fix tests for newer perls
     * Fix constant handling in SM::ByteCode

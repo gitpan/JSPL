@@ -105,7 +105,7 @@ static JSBool
 invoke_perl_property_getter(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
     jsval *vp
 ) {
     dTHX;
@@ -113,14 +113,17 @@ invoke_perl_property_getter(
     PJS_Property *pprop;
     SV *caller;
     char *name;
+#if JS_VERSION >= 185
+    JSAutoByteString bytes;
+#endif
     jsint slot;
     U8 invocation_mode;
 
-    if (!JSVAL_IS_INT(id))
-        return JS_TRUE;
+    if (!PJSID_IS(INT, id)) 
+	return JS_TRUE;
     
     if (JS_TypeOfValue(cx, OBJECT_TO_JSVAL(obj)) == JSTYPE_OBJECT) {
-        /* Called as instsance */
+        /* Called as instance */
         JSClass *clasp = PJS_GET_CLASS(cx, obj);
         name = (char *) clasp->name;
         invocation_mode = 1;
@@ -132,7 +135,11 @@ invoke_perl_property_getter(
             JS_ReportError(cx, "Failed to extract class for static property getter");
             return JS_FALSE;
         }
+#if JS_VERSION < 185
         name = (char *) JS_GetFunctionName(parent_jfunc);
+#else
+        name = bytes.encode(cx, JS_GetFunctionId(parent_jfunc));
+#endif
         invocation_mode = 0;
     }
     
@@ -141,7 +148,7 @@ invoke_perl_property_getter(
         return JS_FALSE;
     }
 
-    slot = JSVAL_TO_INT(id);
+    slot = PJSID_TO(INT, id);
 
     if ((pprop = get_property_by_id(pcls, (int8)slot)) == NULL) {
         JS_ReportError(cx, "Can't find property handler");
@@ -173,7 +180,8 @@ static JSBool
 invoke_perl_property_setter(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
+    DEFSTRICT_
     jsval *vp
 ) {
     dTHX;
@@ -181,13 +189,17 @@ invoke_perl_property_setter(
     PJS_Property *pprop;
     SV *caller;
     char *name;
+#if JS_VERSION >= 185
+    JSAutoByteString bytes;
+#endif
     jsint slot;
     U8 invocation_mode;
 
-    if(!JSVAL_IS_INT(id)) return JS_TRUE;
+
+    if(!PJSID_IS(INT, id)) return JS_TRUE;
 
     if (JS_TypeOfValue(cx, OBJECT_TO_JSVAL(obj)) == JSTYPE_OBJECT) {
-        /* Called as instsance */
+        /* Called as instance */
         JSClass *clasp = PJS_GET_CLASS(cx, obj);
         name = (char *) clasp->name;
         invocation_mode = 1;
@@ -199,7 +211,11 @@ invoke_perl_property_setter(
             JS_ReportError(cx, "Failed to extract class for static property getter");
             return JS_FALSE;
         }
+#if JS_VERSION < 185
         name = (char *) JS_GetFunctionName(parent_jfunc);
+#else
+        name = bytes.encode(cx, JS_GetFunctionId(parent_jfunc));
+#endif
         invocation_mode = 0;
     }
     
@@ -208,7 +224,7 @@ invoke_perl_property_setter(
         return JS_FALSE;
     }
 
-    slot = JSVAL_TO_INT(id);
+    slot = PJSID_TO(INT, id);
 
     if ((pprop = get_property_by_id(pcls, (int8)slot)) == NULL) {
         JS_ReportError(cx, "Can't find property handler");
@@ -282,43 +298,50 @@ free_JSFunctionSpec(
 static JSBool
 construct_perl_object(
     JSContext *cx,
-    JSObject *obj,
-    uintN argc,
-    jsval *argv,
-    jsval *rval
+    DEFJSFSARGS_
 ) {
+    DECJSFSARGS;
     dTHX;
     PJS_Class *pcls;
     JSFunction *jfunc = JS_ValueToFunction(cx, JS_ARGV_CALLEE(argv));
     char *name;
     SV *rsv = NULL;
-    
-    JS_SetPrivate(cx, obj, newRV(&PL_sv_undef)); /* Object is clean */
+    JSBool ok = JS_FALSE;
+#if JS_VERSION >= 185
+    JSAutoByteString bytes;
 
+    name = bytes.encode(cx, JS_GetFunctionId(jfunc));
+    if(!obj && !(obj = JS_NewObjectForConstructor(cx, vp)))
+	return JS_FALSE;
+    argv[-1] = OBJECT_TO_JSVAL(obj);
+#else
     name = (char *)JS_GetFunctionName(jfunc);
+#endif
+
+    JS_SetPrivate(cx, obj, newRV(&PL_sv_undef)); /* Object is clean */
     
     if ((pcls = get_class_by_name(aTHX_ name)) == NULL) {
         JS_ReportError(cx, "Can't find class %s", name);
         return JS_FALSE;
     }
 
-    /* Check if we are allowed to instanciate this class */
+    /* Check if we are allowed to instantiate this class */
     if ((pcls->flags & PJS_CLASS_NO_INSTANCE)) {
         JS_ReportError(cx, "Class '%s' can't be instantiated",
 		           pcls->clasp->name);
         return JS_FALSE;
     }
 
-    if (!PJS_Call_sv_with_jsvals_rsv(aTHX_ cx, obj, pcls->cons,
+    if (!PJS_Call_sv_with_jsvals_rsv(aTHX_ cx, NULL, pcls->cons,
 				     newSVpv(pcls->pkg, 0),
 				     argc, argv, &rsv, G_SCALAR))
 	return JS_FALSE; /* We must have thrown an exception */
 
-    if (sv_isobject(rsv)) return PJS_CreateJSVis(aTHX_ cx, obj, rsv) != NULL;
-
-    JS_ReportError(cx, "%s's constructor don't return an object",
+    if (sv_isobject(rsv)) ok = PJS_CreateJSVis(aTHX_ cx, obj, rsv) != NULL;
+    else JS_ReportError(cx, "%s's constructor don't return an object",
 		   pcls->clasp->name);
-    return JS_FALSE;
+    if(ok) PJS_SET_RVAL(cx, OBJECT_TO_JSVAL(obj));
+    return ok;
 }
 
 static JSPropertySpec *
@@ -374,7 +397,7 @@ add_class_properties(
         current_ps->setter = invoke_perl_property_setter;
         current_ps->tinyid = pcls->next_property_id++;
 
-        current_ps->flags = JSPROP_ENUMERATE;
+        current_ps->flags = JSPROP_ENUMERATE | JSPROP_SHARED;
         
         if (setter == NULL) {
             current_ps->flags |= JSPROP_READONLY;
@@ -399,17 +422,18 @@ add_class_properties(
 static JSBool
 invoke_perl_object_method(
     JSContext *cx,
-    JSObject *obj,
-    uintN argc,
-    jsval *argv,
-    jsval *rval
+    DEFJSFSARGS_
 ) {
     dTHX;
+    DECJSFSARGS;
     PJS_Class *pcls;
     PJS_Function *pfunc;
     JSFunction *jfunc = PJS_FUNC_SELF;
     SV *caller;
     char *name;
+#if JS_VERSION >= 185
+    JSAutoByteString bytes;
+#endif
     U8 invocation_mode;
    
     if (JS_TypeOfValue(cx, OBJECT_TO_JSVAL(obj)) == JSTYPE_OBJECT) {
@@ -425,7 +449,11 @@ invoke_perl_object_method(
             JS_ReportError(cx, "Failed to extract class for static property getter");
             return JS_FALSE;
         }
+#if JS_VERSION < 185
         name = (char *) JS_GetFunctionName(parent_jfunc);
+#else
+	name = bytes.encode(cx, JS_GetFunctionId(parent_jfunc));
+#endif
         invocation_mode = 0;
     }
 
@@ -434,7 +462,12 @@ invoke_perl_object_method(
         return JS_FALSE;
     }
 
+#if JS_VERSION < 185
     name = (char *) JS_GetFunctionName(jfunc);
+#else
+    bytes.clear();
+    name = bytes.encode(cx, JS_GetFunctionId(jfunc));
+#endif
 
     if((pfunc = get_method_by_name(pcls, name)) == NULL) {
         JS_ReportError(cx, "Can't find method '%s' in '%s'", name, pcls->clasp->name);
@@ -505,7 +538,7 @@ add_class_functions(
         current_fs->call = invoke_perl_object_method;
         current_fs->nargs = 0;
         current_fs->flags = 0;
-        current_fs->extra = 0;
+        // current_fs->extra = 0;
 
         pfunc->callback = SvREFCNT_inc_simple_NN(callback);
         
@@ -521,7 +554,7 @@ add_class_functions(
     current_fs->call = 0;
     current_fs->nargs = 0;
     current_fs->flags = 0;
-    current_fs->extra = 0;
+    // current_fs->extra = 0;
 
     return fs_list;
 }
@@ -672,11 +705,9 @@ bind_class(
 			 pcls->static_fs /* static_fs */
     );
 
-    JS_DefineProperty(cx, stash, PJS_PROXY_PROP,
-	              OBJECT_TO_JSVAL(proto), NULL, NULL, 0);
-
-    // Will wait Claes decision
-    // JS_SetReservedSlot(cx, stash, 0, PRIVATE_TO_JSVAL(pcsv));
+    if(!JS_DefineProperty(cx, stash, PJS_PROXY_PROP,
+	              OBJECT_TO_JSVAL(proto), NULL, NULL, 0))
+        return NULL;
 
     if(!PJS_CreateJSVis(aTHX_ cx, proto,
 		    sv_2mortal(sv_bless(newRV(newSV(0)), gv_stashpv(pcls->pkg,0))))

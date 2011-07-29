@@ -22,7 +22,7 @@ PJS_EXTERN char *
 PJS_ConvertUC(pTHX_ SV *sv, STRLEN *len);
 
 PJS_EXTERN SV *
-PJS_JSString2SV(pTHX_ JSString *str);
+PJS_JSString2SV(pTHX_ JSContext *, JSString *str);
 
 PJS_EXTERN JSBool
 PJS_ReflectPerl2JS(pTHX_ JSContext *, JSObject *, SV *, jsval *);

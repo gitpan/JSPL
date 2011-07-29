@@ -22,6 +22,7 @@ isa_ok($script, "JSPL::Script", "Compile returns object");
 #Developer's sanity tests
 SKIP: {
     skip "Perl > 5.9 needed for SM::ByteCode", 2, unless $] > 5.009; 
+    skip "Incomplete porting", 2, unless JSPL::get_internal_version() < 185;
     require JSPL::SM::ByteCode;
     my $prolog = JSPL::SM::ByteCode->prolog($script);
     while(my @opd = $prolog->decode) {

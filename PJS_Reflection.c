@@ -35,7 +35,7 @@ static JSClass passport_class = {
     JS_PropertyStub, /* Add */
     JS_PropertyStub, /* Del */
     JS_PropertyStub, /* Get */
-    JS_PropertyStub, /* Set */
+    PJS_SetterPropStub, /* Set */
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
@@ -78,17 +78,29 @@ PJS_ConvertUC(
 SV *
 PJS_JSString2SV(
     pTHX_
+    JSContext *cx,
     JSString *jstr
 ) {
     SV *ret;
 #if PJS_UTF8_NATIVE
+# if JS_VERSION >= 185
+    JSAutoByteString bytes(cx, jstr);
+    char *str = bytes.ptr();
+# else
     char *str = JS_GetStringBytes(jstr);
+# endif
     ret = newSVpv(str, 0);
     SvUTF8_on(ret);
 #else
     dSP;
-    jschar *chars = JS_GetStringChars(jstr);
-    SV *esv = newSVpv((char *)chars, JS_GetStringLength(jstr) * sizeof(jschar));
+    size_t length;
+#if JS_VERSION >= 185
+    const jschar *chars = JS_GetStringCharsZAndLength(cx, jstr, &length);
+#else
+    const jschar *chars = JS_GetStringChars(jstr);
+    length = JS_GetStringLength(jstr);
+#endif
+    SV *esv = newSVpv((char *)chars, length * sizeof(jschar));
 
     ENTER; SAVETMPS;
     PUSHMARK(SP);
@@ -172,10 +184,19 @@ PJS_ReflectPerl2JS(
     else if(SvIOK(ref) || SvIOKp(ref)) {
         if(SvIV(ref) <= JSVAL_INT_MAX)
             *rval = INT_TO_JSVAL(SvIV(ref));
-        else JS_NewDoubleValue(cx, (double) SvIV(ref), rval);
+	else
+#if JS_VERSION < 185
+	    JS_NewDoubleValue(cx, (jsdouble) SvIV(ref), rval);
+#else
+	    *rval = DOUBLE_TO_JSVAL((jsdouble) SvIV(ref));
+#endif
     }
     else if(SvNOK(ref)) 
+#if JS_VERSION < 185
         JS_NewDoubleValue(cx, SvNV(ref), rval);
+#else
+	*rval = DOUBLE_TO_JSVAL((jsdouble) SvNV(ref));
+#endif
     else if(SvPOK(ref) || SvPOKp(ref)) {
         STRLEN len;
         char *str;
@@ -229,10 +250,14 @@ PrimJSVALToSV(
     else if(JSVAL_IS_INT(v)) 
 	sv = newSViv((IV)JSVAL_TO_INT(v));
     else if(JSVAL_IS_DOUBLE(v))
-	sv = newSVnv(*JSVAL_TO_DOUBLE(v));
+#if JS_VERSION < 185
+	sv = newSVnv((NV) *JSVAL_TO_DOUBLE(v));
+#else
+	sv = newSVnv((NV) JSVAL_TO_DOUBLE(v));
+#endif
     else if(JSVAL_IS_STRING(v)) 
-	sv = PJS_JSString2SV(aTHX_ JSVAL_TO_STRING(v));
-    else croak("PJS_Assert: Unknown primitive type");
+	sv = PJS_JSString2SV(aTHX_ cx, JSVAL_TO_STRING(v));
+    else croak("PJS_Assert: Unknown primitive type: %d", JS_TypeOfValue(cx, v));
     
     return sv;
 }
@@ -288,9 +313,18 @@ PJS_ReflectJS2Perl(
 	if(PJS_getFlag(pcx, "ConvertRegExp") && strEQ(classname, "RegExp")) {
 	    jsval src;
 	    char *str;
+#if JS_VERSION >= 185
+	    JSAutoByteString bytes;
+#endif
 
 	    if(JS_CallFunctionName(cx, object, "toSource", 0, NULL, &src) &&
-	       (str = JS_GetStringBytes(JS_ValueToString(cx, src))) )
+#if JS_VERSION < 185
+	       (str = JS_GetStringBytes(JS_ValueToString(cx, src)))
+#else
+	       (str = bytes.encode(cx, JS_ValueToString(cx, src)))
+#endif
+	    )
+
 	    {
 		dSP;
 		SV *tmp = newSVpvf("qr%s", str);

@@ -46,13 +46,64 @@
 #endif
 
 #if JS_VERSION == 185
-#define PJS_GC(cx)		    {\
+# define PJS_GC(cx)		    {\
     JSErrorReporter older = JS_SetErrorReporter(cx,NULL);\
     JS_GC(cx);\
     JS_SetErrorReporter(cx,older);\
 }
+# define PJS_SetterPropStub	    JS_StrictPropertyStub
+# define pjsid			    jsid
+# define PJSID_IS(type, id)	    JSID_IS_ ## type(id)
+# define PJSID_TO(type, id)	    JSID_TO_ ## type(id)
+# define DEFSTRICT_		    JSBool strict,
+# define PASSTRICT_		    strict,
 #else
-#define PJS_GC(cx)		    JS_GC(cx)
+# define PJS_GC(cx)		    JS_GC(cx)
+# define PJS_SetterPropStub	    JS_PropertyStub
+# define pjsid			    jsval
+# define PJSID_IS(type, id)	    JSVAL_IS_ ## type(id)
+# define PJSID_TO(type, id)	    JSVAL_TO_ ## type(id)
+# define DEFSTRICT_		    /**/
+# define PASSTRICT_		    /**/
+#endif
+
+#ifdef JSS_IS_OBJ
+# define PJS_Script		    JSObject
+# define PJS_O2S(cx,obj)	    (obj)
+# define PJS_S2O(cx,scr)	    (scr)
+# define JS_DestroyScript(cx,scr)   /**/
+#else
+# define PJS_Script		    JSScript
+# define PJS_O2S(cx,obj)	    ((JSScript *)JS_GetPrivate(cx, obj))
+# define PJS_S2O(cx,scr)	    JS_NewScriptObject(cx, scr)
+#endif
+
+#define DSLOWFUNARGS_		    JSObject *obj, uintN argc, jsval *argv, jsval *rval
+#define DSLOWFUNARGS		    /**/
+#define DFASTFUNARGS_		    uintN argc, jsval *vp
+#define DFASTFUNARGS		    JSObject *obj = PJS_IsConstructing(cx, vp) ? NULL : JS_THIS_OBJECT(cx, vp);\
+				    jsval *argv = JS_ARGV(cx, vp);\
+				    jsval *rval = vp;
+#ifdef JS_FN
+# define DEFJSFFARGS_		    DFASTFUNARGS_
+# define DECJSFFARGS		    DFASTFUNARGS
+# if JS_VERSION < 185
+#  define PJS_IsConstructing(cx,vp) FALSE 
+#  define DEFJSFSARGS_		    DSLOWFUNARGS_
+#  define DECJSFSARGS		    DSLOWFUNARGS
+#  define PJS_SET_RVAL(cx, jsval)   (*rval = (jsval))
+# else
+#  define PJS_IsConstructing(cx,vp)  JS_IsConstructing(cx, vp)
+#  define DEFJSFSARGS_		    DFASTFUNARGS_
+#  define DECJSFSARGS		    DFASTFUNARGS
+#  define PJS_SET_RVAL(cx, jsval)   JS_SET_RVAL(cx, vp, jsval)
+# endif
+#else
+# define DEFJSFFARGS_		    DSLOWFUNARGS_
+# define DECJSFFARGS		    DSLOWFUNARGS
+# define DEFJSFSARGS_		    DSLOWFUNARGS_
+# define DECJSFSARGS		    DSLOWFUNARGS
+# define JS_FN(name, call, nargs, flags)    {name, call, nargs, flags, 0}
 #endif
 
 #if defined(PJSDEBUG)
@@ -67,7 +118,7 @@
 #define PJS_DEBUG3(x,x1,x2,x3)	    /**/
 #endif
     
-#define JSCLASS_IS_BRIDGE	(1<<(JSCLASS_HIGH_FLAGS_SHIFT+5))
+#define JSCLASS_IS_BRIDGE	(1<<(JSCLASS_HIGH_FLAGS_SHIFT+7))
 #define	JSCLASS_PRIVATE_IS_PERL	(JSCLASS_HAS_PRIVATE|JSCLASS_IS_BRIDGE|JSCLASS_HAS_RESERVED_SLOTS(1))
 
 #define IS_PERL_CLASS(clasp)	(((clasp)->flags & JSCLASS_PRIVATE_IS_PERL)==JSCLASS_PRIVATE_IS_PERL)

@@ -8,7 +8,7 @@ use Carp;
 
 our $VERSION;
 BEGIN {
-    $VERSION = '1.04';
+    $VERSION = '1.05';
     our @ISA = qw(DynaLoader);
     our $_gruntime = 0;
     DynaLoader::bootstrap('JSPL', $VERSION);
@@ -437,6 +437,10 @@ returns C<PL_sv_no>.
 Returns C<PL_sv_yes> if we have compiled support for I<OperationCallbacks> in SM.
 Otherwise returns C<PL_sv_no>
 
+=item exact_doubles
+
+Returns TRUE if the internal size of floating point types matches between Perl and SM.
+
 =item supports ( @features )
 
 Checks if all features given in I<@features> are present. Is case insensitive. Supported keys are 
@@ -470,6 +474,10 @@ See L<CREDITS>
 
 Although perl 5.8 is supported, it lacks some features and have some bugs, we
 strongly recommends you to use 5.10 or a newer perl.
+
+In environments that support "long doubles", perl can be compiled to use them as
+the default floating point type, but if its size doesn't match SM's jsdouble type,
+you should expect some precision lost.
 
 Please report any bug you found to
 L<https://rt.cpan.org/Public/Dist/Display.html?Name=JSPL>

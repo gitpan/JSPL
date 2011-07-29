@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 PJS_EXTERN JSBool
-perlsub_as_constructor(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+perlsub_as_constructor(JSContext *cx, JSObject *obj, pjsid id, DEFSTRICT_ jsval *vp);
 
 PJS_EXTERN JSObject *
 PJS_NewPerlSub(pTHX_ JSContext *cx, JSObject *parent, SV *ref);

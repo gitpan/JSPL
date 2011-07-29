@@ -66,9 +66,7 @@ $cx1->bind_function(
     }
 );
 
-$cx1->bind_object('FooSan', $foo);
-
-ok(1);
+ok($cx1->bind_object('FooSan', $foo), "Can bind FooSan");
 
 $cx1->eval(q|
 a = FooSan.bar();
@@ -81,7 +79,7 @@ $cx1->eval(q{
 FooSan.std = 1;
 });
 
-ok($foo->{std} == 1);
+ok($foo->{std} == 1, "std is one");
 
 $foo->{std} = 3;
 

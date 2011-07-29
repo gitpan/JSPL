@@ -25,7 +25,7 @@ PJS_GetScope(
     return NULL;
 }
 
-JSScript *
+PJS_Script *
 PJS_MakeScript(
     pTHX_
     JSContext *cx,
@@ -34,7 +34,7 @@ PJS_MakeScript(
     const char *name
 ) {
     svtype type = SvTYPE(source);
-    JSScript *script;
+    PJS_Script *script;
 
     if(!SvOK(source)) {
 	if(strlen(name))
@@ -128,6 +128,13 @@ does_support_threading(...)
     OUTPUT:
 	RETVAL
 
+SV* exact_doubles(...)
+    CODE:
+	PERL_UNUSED_VAR(items); /* -W */
+	RETVAL = sizeof(NV) == sizeof(jsdouble) ? &PL_sv_yes : &PL_sv_no;
+    OUTPUT:
+	RETVAL
+	
 void
 jsvisitor(sv)
     SV *sv
@@ -398,7 +405,7 @@ jsc_eval(pcx, scope, source, name = "")
     PREINIT:
 	jsval rval;
 	JSContext *cx;
-	JSScript *script;
+	PJS_Script *script;
 	JSBool ok = JS_FALSE;
     CODE:
 	cx = PJS_getJScx(pcx);

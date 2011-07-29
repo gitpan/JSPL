@@ -5,7 +5,7 @@ static const char *PerlScalarPkg = NAMESPACE"PerlScalar";
 JSClass perlscalar_class = {
     "PerlScalar",
     JSCLASS_PRIVATE_IS_PERL,
-    JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub,
+    JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, PJS_SetterPropStub,
     JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, PJS_unrootJSVis,
     JSCLASS_NO_OPTIONAL_MEMBERS
 };
@@ -24,12 +24,10 @@ PJS_NewPerlScalar(
 static JSBool
 perlscalar_value(
     JSContext *cx, 
-    JSObject *obj, 
-    uintN argc,
-    jsval *argv,
-    jsval *rval
+    DEFJSFFARGS_
 ) {
     dTHX;
+    DECJSFFARGS;
     SV *iref = (SV *)JS_GetPrivate(cx, obj);
     SV *ref = SvRV(iref);
     return PJS_ReflectPerl2JS(aTHX_ cx, obj, ref, rval);
@@ -40,23 +38,22 @@ static JSPropertySpec perlscalar_props[] = {
 };
 
 static JSFunctionSpec perlscalar_methods[] = {
-    {"valueOf", perlscalar_value, 0, 0, 0},
-    {0, 0, 0, 0 ,0}
+    JS_FN("valueOf", perlscalar_value, 0, 0),
+    JS_FS_END
 };
 
 /* Public JS space constructor */
 static JSBool
 PerlScalar(
     JSContext *cx,
-    JSObject *obj,
-    uintN argc,
-    jsval *argv,
-    jsval *rval
+    DEFJSFSARGS_
 ) {
     dTHX;
+    DECJSFSARGS;
     SV *ref = &PL_sv_undef;
 
     /* If the path fails, the object will be finalized */
+    if(!obj) obj = JS_NewObject(cx, &perlscalar_class, NULL, NULL);
     JS_SetPrivate(cx, obj, (void *)newRV(ref));
 
     if(argc == 1 && !PJS_ReflectJS2Perl(aTHX_ cx, argv[0], &ref, 1))

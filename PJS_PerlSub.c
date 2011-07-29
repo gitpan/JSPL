@@ -2,12 +2,12 @@
 
 extern JSClass perlpackage_class;
 static const char *PerlSubPkg = NAMESPACE"PerlSub";
-static JSBool perlsub_call(JSContext *, JSObject *, uintN, jsval *, jsval *);
-static JSBool perlsub_construct(JSContext *, JSObject *, uintN, jsval *, jsval *);
+static JSBool perlsub_call(JSContext *, DEFJSFSARGS_);
+static JSBool perlsub_construct(JSContext *, DEFJSFSARGS_);
 
 static JSClass perlsub_class = {
     "PerlSub", JSCLASS_PRIVATE_IS_PERL,
-    JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, JS_PropertyStub,
+    JS_PropertyStub, JS_PropertyStub, JS_PropertyStub, PJS_SetterPropStub,
     JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, PJS_unrootJSVis,
     NULL,
     NULL,
@@ -22,12 +22,10 @@ static JSClass perlsub_class = {
 static JSBool
 perlsub_call(
     JSContext *cx, 
-    JSObject *obj,
-    uintN argc, 
-    jsval *argv, 
-    jsval *rval
+    DEFJSFSARGS_
 ) {
     dTHX;
+    DECJSFSARGS;
     JSObject *func = JSVAL_TO_OBJECT(JS_ARGV_CALLEE(argv));
     SV *callee = (SV *)JS_GetPrivate(cx, func);
     JSObject *This = JSVAL_TO_OBJECT(argv[-1]);
@@ -51,10 +49,13 @@ perlsub_call(
          && (func = JS_GetPrototype(cx, This))
          && PJS_GET_CLASS(cx, func) == &perlpackage_class)
     ) { // Caller is a stash, make a static call
-	const char *pkgname = PJS_GetPackageName(aTHX_ cx, This);
+	char *pkgname = PJS_GetPackageName(aTHX_ cx, This);
 	if(!pkgname) return JS_FALSE;
 	caller = newSVpv(pkgname, 0);
 	PJS_DEBUG1("Caller is a stash: %s\n", pkgname);
+#if JS_VERSION >= 185
+	Safefree(pkgname);
+#endif
     }
     else if(IS_PERL_CLASS(clasp) &&
 	    sv_isobject(caller = (SV *)JS_GetPrivate(cx, This))
@@ -74,17 +75,19 @@ perlsub_call(
 static JSBool
 perlsub_construct(
     JSContext *cx,
-    JSObject *obj,
-    uintN argc,
-    jsval *argv,
-    jsval *rval
+    DEFJSFSARGS_
 ) {
     dTHX;
+    DECJSFSARGS;
     JSObject *func = JSVAL_TO_OBJECT(JS_ARGV_CALLEE(argv));
     SV *callee = (SV *)JS_GetPrivate(cx, func);
     SV *caller = NULL;
-    JSObject *proto = JS_GetPrototype(cx, obj);
+#if JS_VERSION < 185
     JSObject *This = JSVAL_TO_OBJECT(argv[-1]);
+#else
+    JSObject *This = JS_NewObjectForConstructor(cx, vp);
+#endif
+    JSObject *proto = JS_GetPrototype(cx, This);
 
     PJS_DEBUG1("Want construct, This is a %s", PJS_GET_CLASS(cx, This)->name);
     if(PJS_GET_CLASS(cx, proto) == &perlpackage_class ||
@@ -95,6 +98,10 @@ perlsub_construct(
     ) {
 	SV *rsv = NULL;
 	char *pkgname = PJS_GetPackageName(aTHX_ cx, proto);
+#if JS_VERSION >= 185
+	JSAutoByteString bytes;
+	bytes.initBytes(pkgname);
+#endif
 	caller = newSVpv(pkgname, 0);
 
 	argv[-1] = OBJECT_TO_JSVAL(This);
@@ -110,7 +117,7 @@ perlsub_construct(
 	JS_ReportError(cx, "%s's constructor don't return an object",
 	               SvPV_nolen(caller));
     }
-    else JS_ReportError(cx, "Can't use as a constructor"); // Yet!
+    else JS_ReportError(cx, "Can't use as a constructor"); // Yet! ;-)
 
     return JS_FALSE;
 }
@@ -119,16 +126,23 @@ JSBool
 perlsub_as_constructor(
     JSContext *cx,
     JSObject *obj,
-    jsval id,
+    pjsid id,
+    DEFSTRICT_
     jsval *vp
 ) {
     // dTHX;
     const char *key;
 
-    if(!JSVAL_IS_STRING(id))
+    if(!PJSID_IS(STRING, id)) {
 	return JS_TRUE;
+    }
 
-    key = JS_GetStringBytes(JSVAL_TO_STRING(id));
+#if JS_VERSION < 185
+    key = JS_GetStringBytes(PJSID_TO(STRING, id));
+#else
+    JSAutoByteString bytes(cx, PJSID_TO(STRING, id));
+    key = bytes.ptr();
+#endif
 
     if(strEQ(key, "constructor")) {
 	JSObject *constructor;
@@ -148,7 +162,8 @@ perlsub_as_constructor(
 	    JS_ReportError(cx, "Invalid constructor type");
 	    return JS_FALSE;
 	}
-    }
+    } else
+	warn ("Opps: setting %s?\n", key);
     return JS_TRUE;
 }
 
@@ -186,26 +201,33 @@ PJS_NewPerlSub(
 static JSBool
 PerlSub(
     JSContext *cx, 
-    JSObject *obj, 
-    uintN argc, 
-    jsval *argv, 
-    jsval *rval
+    DEFJSFSARGS_
 ) {
     dTHX;
-    char *tmp;
+    DECJSFSARGS;
+    // char *tmp;
     SV *cvref;
-    JSBool ok = FALSE;
+    JSBool ok = JS_FALSE;
+    SV *source;
     /* If the path fails, the object will be finalized, so its needs the
      * private setted */
+
+    if(!obj) obj = JS_NewObject(cx, &perlsub_class, NULL,  NULL); 
     JS_SetPrivate(cx, obj, (void *)newRV(&PL_sv_undef));
     ENTER; SAVETMPS;
-    if(JS_ConvertArguments(cx, argc, argv, "s", &tmp) &&
+    if(argc != 1) {
+	JS_ReportError(cx, "PerlSub constructor requires more arguments");
+	return JS_FALSE;
+    }
+
+    if((source = PJS_JSString2SV(aTHX_ cx, JS_ValueToString(cx, argv[0]))) &&
        (cvref = PJS_CallPerlMethod(aTHX_ cx,
                                      "_const_sub",
 	                             sv_2mortal(newSVpv(PerlSubPkg, 0)),
-	                             sv_2mortal(newSVpv(tmp,0)),
+	                             sv_2mortal(source),
 	                             NULL)))
 	ok = PJS_CreateJSVis(aTHX_ cx, obj, cvref) != NULL;
+    if(ok) PJS_SET_RVAL(cx, OBJECT_TO_JSVAL(obj));
     FREETMPS; LEAVE;
     return ok;
 }

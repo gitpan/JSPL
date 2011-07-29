@@ -15,7 +15,7 @@ automatic reflexion between perl and javascript datatypes.
 You can start using all this by writing JavaScript code and running it with the
 included "jspl" shell:
 
-    #!/bin/jspl
+    #!/usr/bin/jspl
 
     // This JavaScript code uses perl's features in a transparent way
 
@@ -73,9 +73,9 @@ Prerequisites
 -------------
 
 To compile and install JSPL, make sure you have SpiderMonkey's headers
-and libraries installed.
+and libraries installed. See <https://developer.mozilla.org/en/SpiderMonkey>
 
-NOTE: The new released SM v1.8.5, found with gecko 2.0 (FF 4.0) isn't supported yet!
+Note that for SpiderMonkey after version 1.8.0, you require a C++ compiler.
 
 If you have build your own SpiderMonkey from sources, set the environment
 variable 'JS_SRC' to the path of your build directory, normally one below
@@ -88,9 +88,9 @@ recent copy of the XULRunner SDK (aka Gecko SDK).
 
 Most Linux distributions provide the XULRunner SDK: in Fedora it is provided in
 the package 'xulrunner-devel', in Debian in 'xulrunner-dev', Ubuntu distributes
-it in parts, you need 'libmozjs-dev'.  Some distros ship a 'js-devel' package,
-that can be used too, but it is usually an older version (< 1.8.0) that lacks
-some features.
+it in parts, you need 'libmozjs-dev'.  Some linux distributions ship a 'js-devel'
+package, that can be used too, but it is usually an older version (< 1.8.0) that
+lacks some features.
 
 All those should include a pkg-config's file that Makefile.PL will use to get
 the required compilation parameters.

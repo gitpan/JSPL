@@ -20,7 +20,12 @@ rop_seal_object(object, pcx, deep = 0)
     JSPL::RawObj	object;
     U32	    deep;
     CODE:
+#if JS_VERSION < 185
 	JS_SealObject(PJS_getJScx(pcx), object, (JSBool)deep);
+#else
+	deep ? JS_DeepFreezeObject(PJS_getJScx(pcx), object)
+	     : JS_FreezeObject(PJS_getJScx(pcx), object);
+#endif
 
 #define PJS_EL_MODE_FLAG	2
 
@@ -233,6 +238,6 @@ rop_free_root(thing, pcx)
 	 * This transfers ownership to the passport, because there isn't more
 	 * references in perl land to the Boxed.
 	 */
-	if(!PL_dirty) SvREFCNT_inc_simple_NN(box); 
+	if(!PL_dirty) (void)SvREFCNT_inc_simple_NN(box); 
 	JS_DeleteProperty(PJS_getJScx(pcx), pcx->pvisitors, hkey);
 	PJS_GC(PJS_getJScx(pcx));

@@ -77,13 +77,13 @@ if((my $src = $ENV{JS_SRC}) && $CC eq 'gcc') {
     } else {
 	$libdirs = "-lm -lnspr4";
     }
-    $defines = '-Wno-unused-variable -DXP_UNIX';
+    $defines .= ' -Wno-unused-variable -DXP_UNIX';
     ($myextlib) = glob "$ENV{JS_SRC}/libjs*.a";
-    my($vhead) = grep -f $_, glob "$ENV{JS_SRC}/../js{version,config}.h";
 
-    die "Your SpiderMonkey doesn't seems to be compiled yet.\nI was looking for $myextlib\n"
+    die "Your SpiderMonkey doesn't seems to be compiled yet.\n"
 	unless(-f $myextlib);
 
+    my($vhead) = grep -f $_, glob "$ENV{JS_SRC}/../js{version,config}.h";
     my $ver = (split ' ',`grep "#define JS_VERSION " $vhead`)[2];
     if($ver >= 185) {
 	$CC = 'c++';
@@ -135,6 +135,10 @@ PKGCONF: {
     if($incdirs =~ m{^-I/usr/local/include/libxul/stable -I/usr/local/include/nspr}) {
 	# Fix for broken pkg-config in freebsd
 	$incdirs .= "-I/usr/local/include/libxul/js";
+    }
+    {
+	no warnings;
+	$CC = 'c++' if(int($vers) >= 2);
     }
 
     warn qq{Will use\n\tJS_LIBS="$libdirs"\n\tJS_INC="$incdirs"\n\tJS_DEFINES="$defines"\n};
@@ -213,11 +217,13 @@ EOF
 # to generate the dynamic header file
 if($needtest) {
     require File::Temp;
-    my $exe = File::Temp::tmpnam();
+    my $exe = "utils/testjs"; #File::Temp::tmpnam();
+    unlink $exe;
     my $ldrp = (ExtUtils::Liblist->ext($libdirs, 0, 0))[3];
     $ENV{LD_RUN_PATH} = $ldrp if $ldrp;
-    my $cc = join(" ", $CC, $defines, $incdirs, $libdirs, "-ldl -o", $exe);
-    #warn "$cc testjs.c\n";
+    my $cc = join(" ", $CC, $defines, $incdirs, $libdirs, '-g -o', $exe);
+    warn "Testing the environment...\n";
+    #warn "$cc testjs.c $myextlib\n";
     qx($cc utils/testjs.c $myextlib);
     if($?) {
 	warn "Test compile failed, check JS_INC, JS_LIBS and JS_DEFINE for errors.\n";
