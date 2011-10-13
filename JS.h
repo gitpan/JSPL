@@ -104,6 +104,8 @@
 # define DEFJSFSARGS_		    DSLOWFUNARGS_
 # define DECJSFSARGS		    DSLOWFUNARGS
 # define JS_FN(name, call, nargs, flags)    {name, call, nargs, flags, 0}
+# define JS_FS_END		    {0, 0, 0, 0, 0}
+# define PJS_SET_RVAL(cx, jsval)    (*rval = (jsval))
 #endif
 
 #if defined(PJSDEBUG)

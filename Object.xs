@@ -186,7 +186,16 @@ rop_length(source, pcx)
 	jsuint len;
     CODE:
 	cx = PJS_getJScx(pcx);
+#ifdef JS_NEED_ARRAYLENGTH
+	if(JS_GetArrayLength(cx, source, &len)) {
+	    RETVAL = newSViv(len);
+	} else {
+	    JS_ClearPendingException(cx);
+	    RETVAL = &PL_sv_undef;
+	}
+#else
 	RETVAL = JS_HasArrayLength(cx, source, &len) ? newSViv(len) : &PL_sv_undef;
+#endif
     OUTPUT:
 	RETVAL
 

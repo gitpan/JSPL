@@ -379,7 +379,7 @@ PJS_setFlag(
     const char *flag,
     JSBool val
 ) {
-    dTHX;
+    //dTHX;
     JSContext *cx = PJS_getJScx(pcx);
     JSObject *flags = pcx->flags;
     if(!cx || !flags) croak("Flags missing(S)!\n");
@@ -393,7 +393,7 @@ PJS_getFlag(
     PJS_Context *pcx,
     const char *flag
 ) {
-    dTHX;
+    //dTHX;
     jsval val;
     JSContext *cx = PJS_getJScx(pcx);
     JSObject *flags = pcx->flags;

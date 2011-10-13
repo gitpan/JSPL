@@ -99,6 +99,7 @@ jsr_add_interrupt_handler(runtime, handler)
     JSPL::RawRT runtime
     JSPL::TrapHandler handler
     CODE:
+	PERL_UNUSED_VAR(handler); /* -W */
 	if(runtime->trap_handler && SvOK(runtime->trap_handler))
 	    sv_free(runtime->trap_handler);
 	runtime->trap_handler = SvREFCNT_inc(ST(1));

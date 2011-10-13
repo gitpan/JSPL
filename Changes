@@ -1,6 +1,13 @@
+1.06  2011-10-12
+    * Fix support for SM < 1.8.0 broken in 1.05
+    * Add support for new SM 1.8.5 (post July 2011) with missing JS_HasArrayLength
+      seen in xulrunner >= 7
+    * Add JSPL->does_support_anonfunfix for detect SM's support of recently removed
+      JSOPTION_ANONFUNFIX and fix t/14-roundtrip-function.t that broke.
+
 1.05  2011-07-29
-    * Add support for released SM 1.8.5
-    * Include some workarounds for posible floating point types mismatch.
+    * Add support for _released_ SM 1.8.5 (js185-1.0.0 official tar ball)
+    * Include some workarounds for possible floating point types mismatch.
 
 1.04  2011-05-09
     * Fix tests for newer perls

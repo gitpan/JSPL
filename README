@@ -77,9 +77,10 @@ and libraries installed. See <https://developer.mozilla.org/en/SpiderMonkey>
 
 Note that for SpiderMonkey after version 1.8.0, you require a C++ compiler.
 
-If you have build your own SpiderMonkey from sources, set the environment
-variable 'JS_SRC' to the path of your build directory, normally one below
-SM's 'js/src' directory, and skip to "Building" below.
+If you have build your own SpiderMonkey from sources but not installed it,
+set the environment variable 'JS_SRC' to the path of your build directory,
+normally one below SM's 'js/src' directory, and skip to "Building" below.
+But be aware that using JS_SRC imply that you want to use a SM _static_ build.
 
 Otherwise the simplest way to get SM's headers an libraries is to install a
 recent copy of the XULRunner SDK (aka Gecko SDK).
@@ -89,11 +90,13 @@ recent copy of the XULRunner SDK (aka Gecko SDK).
 Most Linux distributions provide the XULRunner SDK: in Fedora it is provided in
 the package 'xulrunner-devel', in Debian in 'xulrunner-dev', Ubuntu distributes
 it in parts, you need 'libmozjs-dev'.  Some linux distributions ship a 'js-devel'
-package, that can be used too, but it is usually an older version (< 1.8.0) that
-lacks some features.
+package, that can be used too.
 
 All those should include a pkg-config's file that Makefile.PL will use to get
 the required compilation parameters.
+
+Makefile.PL will check for a pkg-config file for "mozilla-js" and/or "libjs" in that
+order.
 
 * Windows
 

@@ -27,6 +27,7 @@ my %Flags = (
     'XMLEnable' => 1,
 );
 
+$Flags{AnonFunFixEnable} = 0 if JSPL->does_support_anonfunfix;
 $Flags{JITEnable} = 0 if JSPL->does_support_jit;
 
 sub new {
@@ -253,6 +254,8 @@ sub compile_file {
         vofix   => scalar JSPL::_constant('JSOPTION_VAROBJFIX'), 
         xml     => scalar JSPL::_constant('JSOPTION_XML'),
     );
+    $options_by_tag{anonfunfix} = scalar JSPL::_constant('JSOPTION_ANONFUNFIX')
+	if JSPL->does_support_anonfunfix;
     $options_by_tag{jit} = scalar JSPL::_constant('JSOPTION_JIT')
 	if JSPL->does_support_jit;
 

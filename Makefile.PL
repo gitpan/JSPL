@@ -100,7 +100,7 @@ PKGCONF: {
     #warn "Will try with pkg-config files.\n";
     my @build_reqs = (
 	'mozilla-js',
-	'libjs'
+	'libjs',
     );
     unshift @build_reqs, $ARGV[0] if $ARGV[0];
 
@@ -138,7 +138,10 @@ PKGCONF: {
     }
     {
 	no warnings;
-	$CC = 'c++' if(int($vers) >= 2);
+	if(($pkgn eq 'mozilla-js' && int($vers) >= 2) ||
+	   ($pkgn eq 'libjs' && $vers gt "1.8.0")) {
+	    $CC = 'c++'
+	}
     }
 
     warn qq{Will use\n\tJS_LIBS="$libdirs"\n\tJS_INC="$incdirs"\n\tJS_DEFINES="$defines"\n};
@@ -280,7 +283,7 @@ WriteConstants(
     SUBNAME => '_constant',
     XS_SUBNAME => '_constant',
     NAMES => [
-	map("JSOPTION_$_", qw(STRICT VAROBJFIX XML JIT)),
+	map("JSOPTION_$_", qw(STRICT VAROBJFIX XML JIT ANONFUNFIX)),
     ]
 );
 

@@ -8,7 +8,7 @@ use Carp;
 
 our $VERSION;
 BEGIN {
-    $VERSION = '1.05';
+    $VERSION = '1.06';
     our @ISA = qw(DynaLoader);
     our $_gruntime = 0;
     DynaLoader::bootstrap('JSPL', $VERSION);
@@ -67,13 +67,13 @@ sub _boot_ {
     *{$class.'::dl_load_flags'} = DynaLoader->can('dl_load_flags');
     $version ||= $VERSION;
     if(defined &{$class.'::bootstrap'}) {
-	 \&{$class.'::bootstrap'}->($class, $version);
+	*{"${class}::bootstrap"}->($class, $version);
     } else {
 	my $symbol = "boot_$class"; $symbol =~ s/\W/_/g;
 	my $symref = DynaLoader::dl_find_symbol_anywhere($symbol);
 	if($symref) {
 	    DynaLoader::dl_install_xsub($class."::bootstrap", $symref);
-	    \&{$class."::bootstrap"}->($class, $version);
+	    *{"${class}::bootstrap"}->($class, $version);
 	} else {
 	    DynaLoader::bootstrap($class, $version);
 	}
@@ -426,6 +426,11 @@ C<PL_sv_no>.
 
 Returns C<PL_sv_yes> if we have compiled support for threading. Otherwise
 returns C<PL_sv_no>.
+
+=item does_support_anonfunfix
+
+Returns C<PL_sv_yes> if we have compiled support for the SM JS_OPTION_ANONFUNFIX.
+Otherwise returns C<PL_sv_no>.
 
 =item does_support_jit
 

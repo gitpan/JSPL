@@ -34,7 +34,6 @@ int main(int argc, char *argv[]) {
 #else
     tt++;
 #endif
-    if(!dlsym(handle, "JS_DestroyScript")) NOScript++;
 #if JS_VERSION < 180 || defined(JS_MAX_OPERATION_LIMIT)
     /* Don't use interim Operation Callback */
     HBJ++;
@@ -65,8 +64,11 @@ int main(int argc, char *argv[]) {
 	if(tt) printf("#define JS_THREADSAFE\n", tt);
 #endif
 	if(HBJ) printf("#define JS_HAS_BRANCH_HANDLER\n");
-	if(NOScript) printf("#define JSS_IS_OBJ\n");
 	else printf("#undef JS_HAS_BRANCH_HANDLER\n");
+	if(!dlsym(handle, "JS_DestroyScript"))
+	    printf("#define JSS_IS_OBJ\n");
+	if(!dlsym(handle, "JS_HasArrayLength"))
+	    printf("#define JS_NEED_ARRAYLENGTH\n");
 	{ /* Test for bug #533450 */
 	    const char *expr = "'\\xe9';";
 	    jsval v1;

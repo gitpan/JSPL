@@ -93,6 +93,18 @@ does_support_e4x(...)
 	RETVAL
 
 SV*
+does_support_anonfunfix(...)
+    CODE:
+	PERL_UNUSED_VAR(items); /* -W */
+#ifdef	JSOPTION_ANONFUNFIX
+	RETVAL = &PL_sv_yes;
+#else
+	RETVAL = &PL_sv_no;
+#endif
+    OUTPUT:
+	RETVAL
+
+SV*
 does_support_jit(...)
     CODE:
 	PERL_UNUSED_VAR(items); /* -W */
@@ -276,6 +288,7 @@ jsc_set_branch_handler(pcx, handler)
 		   "handler"); 
 #else
 	PERL_UNUSED_VAR(handler);
+	PERL_UNUSED_VAR(pcx);
 	croak("%s: not available in this SpiderMonkey",
 	      NAMESPACE"RatRT::jsc_set_branch_handler");
 #endif
