@@ -97,16 +97,16 @@ my $pkgn = '';
 unless($libdirs && $incdirs) {
 PKGCONF: {
     # In the common case we depend on a pkg-config file.
-    #warn "Will try with pkg-config files.\n";
     my @build_reqs = (
-	'mozilla-js',
+	'mozjs185',
 	'libjs',
+	'mozilla-js',
     );
     unshift @build_reqs, $ARGV[0] if $ARGV[0];
 
     for(@build_reqs) {
 	#warn "Testing for $_...\n";
-	my $res = system 'pkg-config', '--exists',  "$_ >= 1.7";
+	my $res = system 'pkg-config', '--exists',  /\d$/ ? $_ : "$_ >= 1.7";
 	if($res == -1) {
 	    warn "Can't run pkg-config\n";
 	    last PKGCONF;
@@ -123,6 +123,7 @@ PKGCONF: {
     }
     my $vers = `pkg-config --modversion $pkgn`;
     chomp $vers;
+    $vers = '1.8.5' if !$vers && $pkgn eq 'mozjs185'; # Missing 'Version' field?
     warn "Found $pkgn ($vers)\n";
     $libdirs = `pkg-config --libs $pkgn`;
     chomp $libdirs;
@@ -132,14 +133,18 @@ PKGCONF: {
     chomp $incdirs;
 
     $defines .= ' -DXP_UNIX' unless $defines =~ /-DXP/; # Just in case.
+
     if($incdirs =~ m{^-I/usr/local/include/libxul/stable -I/usr/local/include/nspr}) {
 	# Fix for broken pkg-config in freebsd
 	$incdirs .= "-I/usr/local/include/libxul/js";
     }
+
     {
 	no warnings;
-	if(($pkgn eq 'mozilla-js' && int($vers) >= 2) ||
-	   ($pkgn eq 'libjs' && $vers gt "1.8.0")) {
+	if(($pkgn =~ /^mozilla-js/ && int($vers) >= 2) ||
+	   ($pkgn eq 'libjs' && $vers gt "1.8.0") ||
+           ($pkgn eq 'mozjs185')
+        ) {
 	    $CC = 'c++'
 	}
     }
@@ -224,10 +229,10 @@ if($needtest) {
     unlink $exe;
     my $ldrp = (ExtUtils::Liblist->ext($libdirs, 0, 0))[3];
     $ENV{LD_RUN_PATH} = $ldrp if $ldrp;
-    my $cc = join(" ", $CC, $defines, $incdirs, $libdirs, '-g -o', $exe);
+    my $cc = join(" ", $CC, $defines, $incdirs, '-g -o', $exe);
     warn "Testing the environment...\n";
     #warn "$cc testjs.c $myextlib\n";
-    qx($cc utils/testjs.c $myextlib);
+    qx($cc utils/testjs.c $libdirs $myextlib);
     if($?) {
 	warn "Test compile failed, check JS_INC, JS_LIBS and JS_DEFINE for errors.\n";
 	warn "Your package-config file '$pkgn.pc' can be broken!\n" if $pkgn;

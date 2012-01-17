@@ -8,7 +8,7 @@ use Carp;
 
 our $VERSION;
 BEGIN {
-    $VERSION = '1.06';
+    $VERSION = '1.07';
     our @ISA = qw(DynaLoader);
     our $_gruntime = 0;
     DynaLoader::bootstrap('JSPL', $VERSION);
@@ -171,7 +171,8 @@ For details on context creation see L<JSPL::Runtime> and L<JSPL::Context>
 B<Populate the context> with any new functionality your application needs. This
 is done using either the C<bind_*> family of methods from
 L<JSPL::Context> for simple cases or with the L<JSPL::Controller>
-object associated to the context for more complex cases.
+object associated to the context for more complex cases, for example binding Perl 
+classes or entire modules.
 
 =item *
 
@@ -505,7 +506,7 @@ Miguel Ibarra &lt;mibarra@msg.com.mx&gt;
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2008 - 2011, Salvador Ortiz <sortiz@cpan.org>
+Copyright (c) 2008 - 2012, Salvador Ortiz <sortiz@cpan.org>
 All rights reserved.
 
 Some code adapted from Claes Jakobsson's JavaScript module, 

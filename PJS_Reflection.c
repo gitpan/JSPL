@@ -158,7 +158,7 @@ PJS_ReflectPerl2JS(
 	if(sv_derived_from(ref, PJS_BOXED_PACKAGE)) {
 	    SV **fref = av_fetch((AV *)SvRV(SvRV(ref)), 2, 0);
 	    assert(sv_derived_from(*fref, PJS_RAW_JSVAL));
-	    *rval = (jsval)SvIV(SvRV(*fref));
+	    PJS_PSV2JSV(*rval, *fref);
 	    return JS_TRUE;
 	}
 
@@ -406,7 +406,7 @@ PJS_ReflectJS2Perl(
 		}
 
 		sv_setref_pv(robj, PJS_RAW_OBJECT, (void*)object);
-		sv_setref_iv(rjsv, PJS_RAW_JSVAL, (IV)value);
+		PJS_JSV2PSV(rjsv, value);
 		boxref = PJS_CallPerlMethod(aTHX_ cx,
 		    "__new",
 		    sv_2mortal(newSVpv(package, 0)),	 // package

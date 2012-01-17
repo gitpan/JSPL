@@ -324,8 +324,9 @@ jsvisitor(pcx, sv)
 			JSObject *object = jsvis->object;
 			SV *robj = newSV(0);
 			SV *rjsv = newSV(0);
+			jsval aval = OBJECT_TO_JSVAL(object);
 			sv_setref_pv(robj, PJS_RAW_OBJECT, (void*)object);
-			sv_setref_iv(rjsv, PJS_RAW_JSVAL, (IV)OBJECT_TO_JSVAL(object));
+			PJS_JSV2PSV(rjsv, aval);
 			RETVAL = PJS_CallPerlMethod(aTHX_ PJS_getJScx(jsvis->pcx),
 			    "__new",
 			    sv_2mortal(newSVpv(NAMESPACE"Visitor", 0)),	// package
@@ -457,9 +458,9 @@ jsc_call(pcx, scope, function, args)
 	if(sv_derived_from(function, PJS_FUNCTION_PACKAGE)) {
 	    SV *box = SvRV(function);
 	    SV **fref = av_fetch((AV *)SvRV(box), 2, 0);
-	    fval = (jsval)SvIV(SvRV(*fref));
+	    PJS_PSV2JSV(fval, *fref);
 	} else if(sv_derived_from(function, PJS_RAW_JSVAL)) {
-	    fval = (jsval)SvIVX(SvRV(function));
+	    PJS_PSV2JSV(fval, function);
         } else {
 	    char *name = SvPV_nolen(function);
 	    JSObject *nextObj;

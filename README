@@ -75,6 +75,8 @@ Prerequisites
 To compile and install JSPL, make sure you have SpiderMonkey's headers
 and libraries installed. See <https://developer.mozilla.org/en/SpiderMonkey>
 
+Currently this module support SpiderMonkey versions 1.7.0 to 1.8.5
+
 Note that for SpiderMonkey after version 1.8.0, you require a C++ compiler.
 
 If you have build your own SpiderMonkey from sources but not installed it,
@@ -83,20 +85,25 @@ normally one below SM's 'js/src' directory, and skip to "Building" below.
 But be aware that using JS_SRC imply that you want to use a SM _static_ build.
 
 Otherwise the simplest way to get SM's headers an libraries is to install a
-recent copy of the XULRunner SDK (aka Gecko SDK).
+recent copy of the XULRunner SDK (aka Gecko SDK) or a packaged SpiderMonkey for
+your distribution.
 
 * Linux
 
 Most Linux distributions provide the XULRunner SDK: in Fedora it is provided in
 the package 'xulrunner-devel', in Debian in 'xulrunner-dev', Ubuntu distributes
-it in parts, you need 'libmozjs-dev'.  Some linux distributions ship a 'js-devel'
-package, that can be used too.
+it in parts, you need 'libmozjs-dev' or 'libmoz185-dev'.  Some linux distributions
+ship a 'js-devel' package that can be used too.
 
 All those should include a pkg-config's file that Makefile.PL will use to get
-the required compilation parameters.
+the required compilation parameters, but different distributions use different names.
 
-Makefile.PL will check for a pkg-config file for "mozilla-js" and/or "libjs" in that
-order.
+An easy way to known if you has one of them installed is to execute:
+
+  $ pkg-config --list-all | grep js
+
+Makefile.PL will automatically search for some known pkg-config's files, but you can
+select which one to use.
 
 * Windows
 
@@ -131,20 +138,28 @@ To build and install this module, do the following:
 > make test
 > make install
 
+In linux, you can pass the name of the pkg-config module that you want to use as
+a single argument to Makefile.PL, for example:
+
+> perl Makefile mozilla-js2
+
 In Windows, substitute "make" with "nmake".
 
 -------
 SUPPORT
 -------
 
-Until a proper bug tracker is installed, please submit any questions, bug reports,
-comments, feature requests, etc., to  Salvador Ortiz <sortiz@cpan.org>
+Please submit any questions, bug reports, comments, feature requests, etc.,
+to Salvador Ortiz <sortiz@cpan.org>.
+
+I'm also subscribed to the perl-javascript@perl.org mailing list that is a proper
+place to discuss this module.
 
 ---------
 COPYRIGHT
 ---------
 
-Copyright (c) 2009 - 2011, Salvador Ortiz <sortiz@cpan.org>.
+Copyright (c) 2009 - 2012, Salvador Ortiz <sortiz@cpan.org>.
 All rights reserved.
 
 Some code adapted from JavaScript module

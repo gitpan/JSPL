@@ -165,7 +165,7 @@ rop_nextkey(iterator, pcx)
 	if(!JS_NextProperty(cx, iterator, &idp))
 	    croak("NextProperty fail!");
 
-	if(idp == JSVAL_VOID) {
+	if(PJSID_IS(VOID,idp)) {
 	    /* End of properties, unroot iterator */
 	    char hkey[32];
 	    snprintf(hkey, 32, "%p", (void *)iterator);

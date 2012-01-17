@@ -1,7 +1,14 @@
+1.07  2012-01-16
+    * Add 'mozjs185' package-config file support, seen in Ubuntu 11 
+      - Thanks to Christiaan Kras for his report and help with testing.
+    * Add support for XulRunner 9, that reintroduces visible JSScript and JS::Value
+    * Fix for perls compiled without 64bit support, broken in 1.05
+
 1.06  2011-10-12
     * Fix support for SM < 1.8.0 broken in 1.05
     * Add support for new SM 1.8.5 (post July 2011) with missing JS_HasArrayLength
       seen in xulrunner >= 7
+      - Thanks to Simone for the report.
     * Add JSPL->does_support_anonfunfix for detect SM's support of recently removed
       JSOPTION_ANONFUNFIX and fix t/14-roundtrip-function.t that broke.
 

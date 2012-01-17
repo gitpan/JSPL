@@ -114,7 +114,7 @@ static JSBool perlhash_enumerate(
 	int items = hv_iterinit(hv);
 	*statep = PRIVATE_TO_JSVAL(hv);
 	if(idp)
-	    *idp = INT_TO_JSVAL(items);
+	    *idp = INT_TO_JSID(items);
 	return JS_TRUE;
     }
     if(enum_op == JSENUMERATE_NEXT) {

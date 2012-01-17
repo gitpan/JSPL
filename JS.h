@@ -3,7 +3,7 @@
     @abstract This module provides an interface between SpiderMonkey and perl.
         
     @copyright Claes Jakobsson 2001-2007
-    @copyright Matias Software Group 2008-2010
+    @copyright Matias Software Group 2008-2012
 */
 
 #ifndef __JAVASCRIPT_H__
@@ -21,6 +21,8 @@
 #undef dNOOP
 #define dNOOP	extern int __attribute__ ((unused)) Perl___notused
 #endif
+
+#undef Move /* Used in new SM */
 
 #include <jsapi.h>
 #include <jsdbgapi.h>
@@ -57,6 +59,8 @@
 # define PJSID_TO(type, id)	    JSID_TO_ ## type(id)
 # define DEFSTRICT_		    JSBool strict,
 # define PASSTRICT_		    strict,
+# define PJS_JSV2PSV(psv,jsv)	    sv_setref_pvn(psv,PJS_RAW_JSVAL,(char *)&(jsv),sizeof(jsv))
+# define PJS_PSV2JSV(jsv,psv)	    ((jsv)=*(jsval *)(SvPVX(SvRV(psv))))
 #else
 # define PJS_GC(cx)		    JS_GC(cx)
 # define PJS_SetterPropStub	    JS_PropertyStub
@@ -65,6 +69,8 @@
 # define PJSID_TO(type, id)	    JSVAL_TO_ ## type(id)
 # define DEFSTRICT_		    /**/
 # define PASSTRICT_		    /**/
+# define PJS_JSV2PSV(psv,jsv)	    sv_setref_iv(psv,PJS_RAW_JSVAL,(IV)jsv)
+# define PJS_PSV2JSV(jsv,psv)	    ((jsv)=(jsval)(SvIV(SvRV(psv))))
 #endif
 
 #ifdef JSS_IS_OBJ
@@ -74,8 +80,14 @@
 # define JS_DestroyScript(cx,scr)   /**/
 #else
 # define PJS_Script		    JSScript
-# define PJS_O2S(cx,obj)	    ((JSScript *)JS_GetPrivate(cx, obj))
-# define PJS_S2O(cx,scr)	    JS_NewScriptObject(cx, scr)
+# ifdef JSS_IS_NEW
+#   define PJS_O2S(cx,obj)	    ((JSScript *)JS_GetPrivate(cx, obj))
+#   define PJS_S2O(cx,scr)	    JS_GetObjectFromScript(scr)
+#   define JS_DestroyScript(cx,scr)   /**/
+# else
+#   define PJS_O2S(cx,obj)	    ((JSScript *)JS_GetPrivate(cx, obj))
+#   define PJS_S2O(cx,scr)	    JS_NewScriptObject(cx, scr)
+# endif
 #endif
 
 #define DSLOWFUNARGS_		    JSObject *obj, uintN argc, jsval *argv, jsval *rval
@@ -103,8 +115,8 @@
 # define DECJSFFARGS		    DSLOWFUNARGS
 # define DEFJSFSARGS_		    DSLOWFUNARGS_
 # define DECJSFSARGS		    DSLOWFUNARGS
-# define JS_FN(name, call, nargs, flags)    {name, call, nargs, flags, 0}
-# define JS_FS_END		    {0, 0, 0, 0, 0}
+# define JS_FN(name,call,nargs,flags)    {name,call,nargs,flags,0}
+# define JS_FS_END		    {0,0,0,0,0}
 # define PJS_SET_RVAL(cx, jsval)    (*rval = (jsval))
 #endif
 

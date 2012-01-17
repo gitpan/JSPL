@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 	gobj = JS_NewObject(cx, &global_class, NULL, NULL);
 #else
 	gobj = JS_NewCompartmentAndGlobalObject(cx, &global_class, NULL);
-	fprintf(stderr, "Warning: unfinished port to this SM version!\n");
+	fprintf(stderr, "Warning: support for this version of SM is a work in progress\n");
 #endif
 	if(!gobj || !JS_InitStandardClasses(cx, gobj)) 
 	    goto fail;
@@ -65,8 +65,11 @@ int main(int argc, char *argv[]) {
 #endif
 	if(HBJ) printf("#define JS_HAS_BRANCH_HANDLER\n");
 	else printf("#undef JS_HAS_BRANCH_HANDLER\n");
-	if(!dlsym(handle, "JS_DestroyScript"))
+	if(   !dlsym(handle, "JS_DestroyScript") 
+	   && !dlsym(handle, "JS_AddNamedScriptRoot"))
 	    printf("#define JSS_IS_OBJ\n");
+	if(dlsym(handle, "JS_AddNamedScriptRoot"))
+	    printf("#define JSS_IS_NEW\n");
 	if(!dlsym(handle, "JS_HasArrayLength"))
 	    printf("#define JS_NEED_ARRAYLENGTH\n");
 	{ /* Test for bug #533450 */

@@ -91,7 +91,7 @@ perlarray_enumerate(
 	*statep = PRIVATE_TO_JSVAL(cc);
 	if(idp) {
 	    I32 alen = av_len(av);
-	    *idp = INT_TO_JSVAL(alen + 1);
+	    *idp = INT_TO_JSID(alen + 1);
 	}
 	return JS_TRUE;
     }

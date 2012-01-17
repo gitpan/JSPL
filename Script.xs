@@ -1,7 +1,6 @@
 #include "JS.h"
 
 #undef SHADOW /* perl.h includes shadow.h, clash with jsatom.h  */
-#include "jsscript.h"
 
 MODULE = JSPL::Script     PACKAGE = JSPL::Script
 PROTOTYPES: DISABLE
@@ -48,6 +47,10 @@ jss_compile(pcx, scope, source, name = "")
     OUTPUT:
 	RETVAL
 
+#if JS_VERSION < 185
+
+#include "jsscript.h"
+
 SV *
 jss_prolog(pcx, obj)
     JSPL::Context pcx;
@@ -82,7 +85,6 @@ jss_main(pcx, obj)
     OUTPUT:
 	RETVAL
 
-#if JS_VERSION < 185
 SV *
 jss_getatom(pcx, obj, index)
     JSPL::Context pcx;
