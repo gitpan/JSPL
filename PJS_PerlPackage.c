@@ -329,11 +329,8 @@ PJS_GetPackageObject(
     JSContext *cx,
     const char *package
 ) {
-    JSObject *scope;
-
-    scope = JS_GetScopeChain(cx);
-    if(!scope) scope = JS_GetGlobalObject(cx);
-    while(scope) {
+    JSObject *scope = JS_GetGlobalObject(cx);
+    if(scope) {
 	jsval temp = JSVAL_VOID;
 	JSObject *stashes;
 	if(JS_LookupProperty(cx, scope, "__PERL__", &temp)
@@ -380,7 +377,6 @@ PJS_GetPackageObject(
 	    }
 	    return NULL; /* Failed */
 	}
-	scope = JS_GetParent(cx, scope);
     }
     croak("Can't get my controller!\n");
     return NULL;

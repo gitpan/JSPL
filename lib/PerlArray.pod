@@ -202,4 +202,5 @@ of the javascript C<PerlHash> constructor.
 This feature can be removed at any time. I strongly recommend against using it.
 Read "Migrating from JavaScript.txt" for the details.
 
-=cut
+=back
+

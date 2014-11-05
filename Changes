@@ -1,3 +1,9 @@
+1.08  2914-11-xx
+    * Fix a typo in Makefile.PL for "Brute-force header search", allows the build
+      using Debian (squeeze) with libmozjs 1.9.1
+      - Thanks to dschrag AT oneupweb.com for the patch.
+    * Avoid a warning in 40-controller.t
+
 1.07  2012-01-16
     * Add 'mozjs185' package-config file support, seen in Ubuntu 11 
       - Thanks to Christiaan Kras for his report and help with testing.

@@ -68,7 +68,7 @@ if((my $src = $ENV{JS_SRC}) && $CC eq 'gcc') {
 	chomp $cflags;
 	my @incs = split ' ', $cflags;
 	$incdirs .= ' ' . $incs[1] if @incs > 1;
-	
+
 	$libdirs = qx($src/js-config --libs);
 	chomp $libdirs;
 	my @libs = split(' ', $libdirs);
@@ -138,6 +138,7 @@ PKGCONF: {
 	# Fix for broken pkg-config in freebsd
 	$incdirs .= "-I/usr/local/include/libxul/js";
     }
+    $libdirs .= '-ldl' if $libdirs !~ /-ldl\b/; # Broken pkg-config in Ubuntu 13.04
 
     {
 	no warnings;
@@ -165,7 +166,7 @@ BRUTE: {
     unless($incdirs) {
 	my $hash=0;
 	for my $p (@ipaths) {
-	    if(-f("$p/jsapi.js") && -f("$p/jsdbgapi.h")) {
+	    if(-f("$p/jsapi.h") && -f("$p/jsdbgapi.h")) {
 		push @incs, "-I$p";
 		$hash++;
 	    }
@@ -253,24 +254,24 @@ my $NAME = 'JSPL';
 
 # Write makefile
 WriteMakefile(
-    NAME            => $NAME,
-    VERSION_FROM    => "lib/$NAME.pm",
-    PREREQ_PM       => {
+    NAME		=> $NAME,
+    VERSION_FROM	=> "lib/$NAME.pm",
+    CONFIGURE_REQUIRES	=> { 'ExtUtils::MakeMaker' => '6.64' },
+    TEST_REQUIRES	=> {
         "Test::More"      => 0,
         "Test::Exception" => 0,
     },
-    ABSTRACT_FROM   => "lib/$NAME.pm", # retrieve abstract from module
-    AUTHOR          => "Salvador Ortiz <sortiz\@cpan.org>",
-    DEFINE          => "$defines",
-    LIBS            => "$libdirs",
-    INC             => $incdirs,
-    (
-	eval { ExtUtils::MakeMaker->VERSION(6.3001) } ? (LICENSE => "perl") : () 
-    ),
-    EXE_FILES	    => [ 'bin/jspl' ],
-    OBJECT          => q/$(O_FILES)/,
-    CC              => $CC,
-    DL_FUNCS	    => {
+    ABSTRACT_FROM	=> "lib/$NAME.pm", # retrieve abstract from module
+    AUTHOR		=> "Salvador Ortiz <sortiz\@cpan.org>",
+    #DEFINE		=> "$defines -DPJS_HAS_SCRIPTH",
+    DEFINE		=> "$defines",
+    LIBS		=> "$libdirs",
+    INC			=> $incdirs,
+    LICENSE		=> 'perl',
+    EXE_FILES		=> [ 'bin/jspl' ],
+    OBJECT		=> q/$(O_FILES)/,
+    CC			=> $CC,
+    DL_FUNCS		=> {
 	$NAME => [], $NAME."::RawObj" => [], $NAME."::Script" => [],
 	$NAME."::PerlClass" => [], $NAME."::TrapHandler" => [],
 	$NAME."::Context::Timeout" => [], $NAME."::SM::Opcode" => [],
@@ -293,7 +294,7 @@ WriteConstants(
 );
 
 WriteConstants(
-    NAME => $NAME.'::SM::Opcode', 
+    NAME => $NAME.'::SM::Opcode',
     SUBNAME => '_constant',
     XS_SUBNAME => '_constant',
     C_FILE => 'op-const-c.inc',

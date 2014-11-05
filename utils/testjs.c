@@ -3,7 +3,6 @@
 #include <string.h>
 #include <dlfcn.h>
 #include "jsapi.h"
-#include "jsdbgapi.h"
 
 #if JS_VERSION < 180
 #define JS_SetCStringsAreUTF8()	    /**/
@@ -68,8 +67,11 @@ int main(int argc, char *argv[]) {
 	if(   !dlsym(handle, "JS_DestroyScript") 
 	   && !dlsym(handle, "JS_AddNamedScriptRoot"))
 	    printf("#define JSS_IS_OBJ\n");
-	if(dlsym(handle, "JS_AddNamedScriptRoot"))
-	    printf("#define JSS_IS_NEW\n");
+	if(dlsym(handle, "JS_AddNamedScriptRoot")) {
+	    if(dlsym(handle, "JS_GetObjectFromScript"))
+		printf("#define JS_HAS_GOFS\n");
+	    else printf("#define JS_NEED_NSO\n");
+	}
 	if(!dlsym(handle, "JS_HasArrayLength"))
 	    printf("#define JS_NEED_ARRAYLENGTH\n");
 	{ /* Test for bug #533450 */

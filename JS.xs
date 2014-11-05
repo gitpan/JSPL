@@ -426,12 +426,13 @@ jsc_eval(pcx, scope, source, name = "")
 	scope = PJS_GetScope(aTHX_ cx, ST(1));
 
 	sv_setsv(ERRSV, &PL_sv_undef);
-
 	script = PJS_MakeScript(aTHX_ cx, scope, source, name);
 
 	if(script != NULL) {
 	    ok = JS_ExecuteScript(cx, scope, script, &rval);
+#ifndef JS_NEED_NSO
 	    JS_DestroyScript(cx, script);
+#endif
 	}
 	if(!ok || !PJS_ReflectJS2Perl(aTHX_ cx, rval, &RETVAL, 1)) {
 	    PJS_report_exception(aTHX_ pcx);

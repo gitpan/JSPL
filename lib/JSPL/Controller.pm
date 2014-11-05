@@ -366,6 +366,9 @@ JSPL::Controller - Control which Perl namespaces can be used from JavaScript.
 Every context has a controller object. Context's controller object allows you to
 reflect entire perl namespaces to JavaScript side and control how they can be used.
 
+As a "class" in perl are implemented using namespaces, this module allows you to
+reflect perl classes to JavaScript easily.
+
 In the following discussion, we use the words "perl package" or simply "package" to
 refer to a perl namespace, declared in perl with the keyword L<perlfunc/package>.
 
@@ -411,8 +414,8 @@ namespaces visible from JavaScript land. Returns a TRUE value
 returns a FALSE value.
 
 Normal operation is to automatically add namespaces as needed. Packages are
-added when a perl object enters javacript or you use L<JSPL::Context/bind_class>
-and the package isn't already known.
+added when a perl object enters javascript, you use L</install> bellow
+or you use L<JSPL::Context/bind_class> and the package isn't already known.
 
 =item list ( )
     

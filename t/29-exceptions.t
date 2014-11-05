@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 34;
+use Test::More tests => 49;
 use Test::Exception;
 
 use JSPL;
@@ -187,9 +187,87 @@ is($@, undef);
 
 $context->bind_class(constructor => sub { die "Can't create"; }, name => 'CantCreate');
 $context->eval("var f = new CantCreate");
-like($@, qr/Can't create/);
+like($@, qr/Can't create/, 'Correct JS error');
 
 } # RaiseExceptions default again
+
+# Round III, untrappaple in JS
+{ local $context->{ReflectExceptions} = 0;
+
+$ret = 'some';
+dies_ok {
+$ret = $context->eval(<<EOP);
+  perl5_eval('print "foo\\n" ;die { foo => "fnord\\n"}; print "bar\\n"');
+  2;
+
+EOP
+} 'RaiseExceptions true again';
+is_deeply($@, { foo => "fnord\n"}, 'General machinery working' );
+is($ret, 'some', 'Die indeed');
+
+dies_ok {
+    $ret = $context->eval(q|
+    try {
+      perl5_eval('die "foo"');
+    }
+    catch (e) {
+      throw "bar";
+    }
+    1;
+    |)
+} 'Untrappable in JS';
+like($@, qr/^foo at \(eval \d+\) line 1./, 'Die with foo' );
+is($ret, 'some', 'Die indeed');
+
+lives_ok {
+    local $context->{RaiseExceptions} = 0;
+    $ret = $context->eval(q|
+    try {
+      perl5_eval('die "foo"');
+    }
+    catch (e) {
+    }
+    1;
+    |)
+} 'RE0 Untrappable in JS';
+is($ret, undef, 'No raised');
+
+dies_ok {
+    $context->eval(q|
+	try {
+	  perl5_eval('die "bar"');
+	}
+	catch (e) {
+	}
+	1;
+    |);
+    $ret = 'mark';
+} 'Now die';
+like($@, qr/^bar/, 'Die with bar' );
+is($ret, undef, 'Die indeed');
+
+{
+    local $context->{RaiseExceptions} = 0;
+    $ret = 'some';
+    throws_ok {
+	local $context->{ReflectExceptions};
+	$ret = $context->eval(q|
+	    try {
+	      perl5_eval('$context->{ReflectExceptions} = 1; die "foo"');
+	    }
+	    catch (e) {
+	      throw "baz";
+	    }
+	    1;
+	|) || 'mark';
+        is($ret, 'mark', 'Ret is mark');
+	die $@ if $@;
+    } qr/baz/, 'throw baz';
+    is($context->{ReflectExceptions}, 0, 'Localized')
+}
+
+} # ReflectExceptions default again
+ok($context->{ReflectExceptions}, 'Now TRUE again');
 
 throws_ok {
     $context->eval("var f = new CantCreate");

@@ -29,3 +29,5 @@ JSPL::TrapHandler - Add support for Traps Handling to JSPL
 =item new ( $code, $data )
 
 Construct a new closure with $code and $data
+
+=back

@@ -3,7 +3,7 @@ INTRODUCTION
 ------------
 
 JSPL.pm is a bridge between Mozilla's SpiderMonkey JavaScript engine and the
-Perl engine.
+Perl 5 engine.
 
 JSPL allows you to export perl functions, classes and even entire perl namespaces
 to javascript, then compile and execute javascript code and call javascript
@@ -77,6 +77,11 @@ and libraries installed. See <https://developer.mozilla.org/en/SpiderMonkey>
 
 Currently this module support SpiderMonkey versions 1.7.0 to 1.8.5
 
+** WARNING **
+Right now the SpiderMonkey code is under massive rewrite and without
+promises of API stability, so don't expect support in this module for other
+versions until SpiderMonkey stabilizes.
+
 Note that for SpiderMonkey after version 1.8.0, you require a C++ compiler.
 
 If you have build your own SpiderMonkey from sources but not installed it,
@@ -92,7 +97,7 @@ your distribution.
 
 Most Linux distributions provide the XULRunner SDK: in Fedora it is provided in
 the package 'xulrunner-devel', in Debian in 'xulrunner-dev', Ubuntu distributes
-it in parts, you need 'libmozjs-dev' or 'libmoz185-dev'.  Some linux distributions
+it in parts, you need 'libmozjs-dev' or 'libmozjs185-dev'.  Some linux distributions
 ship a 'js-devel' package that can be used too.
 
 All those should include a pkg-config's file that Makefile.PL will use to get
@@ -159,7 +164,7 @@ place to discuss this module.
 COPYRIGHT
 ---------
 
-Copyright (c) 2009 - 2012, Salvador Ortiz <sortiz@cpan.org>.
+Copyright (c) 2009 - 2014, Salvador Ortiz <sortiz@cpan.org>.
 All rights reserved.
 
 Some code adapted from JavaScript module

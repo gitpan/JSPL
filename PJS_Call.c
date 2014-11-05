@@ -1,5 +1,24 @@
 #include "JS.h"
 
+void propagate2JS(
+    pTHX_
+    PJS_Context *pcx,
+    JSObject *obj
+) {
+    JSContext *cx = PJS_getJScx(pcx);
+    if(PJS_getFlag(pcx, "ReflectExceptions")) {
+	jsval rval;
+	SV* cp = newSVsv(ERRSV);
+	if(!PJS_ReflectPerl2JS(aTHX_ cx, obj, cp, &rval)) 
+	    croak("Can't convert perl error into JSVAL");
+	JS_SetPendingException(cx, rval);
+	sv_setsv(ERRSV, &PL_sv_undef);            
+	sv_free(cp);
+    } else {
+	JS_ClearPendingException(cx);
+    }
+}
+
 PJS_EXTERN SV *
 PJS_CallPerlMethod(
     pTHX_
@@ -10,12 +29,13 @@ PJS_CallPerlMethod(
     dSP;
     va_list ap;
     SV *arg, *ret;
+    PJS_Context *pcx = PJS_GET_CONTEXT(cx);
 
     ENTER;
     SAVETMPS;
     PUSHMARK(SP);
     
-    sv_setiv(save_scalar(PJS_Context_SV), PTR2IV(PJS_GET_CONTEXT(cx)));
+    sv_setiv(save_scalar(PJS_Context_SV), PTR2IV(pcx));
 
     va_start(ap, method);
     while( (arg = va_arg(ap, SV*)) ) XPUSHs(arg);
@@ -29,14 +49,8 @@ PJS_CallPerlMethod(
     LEAVE;
 
     if (SvTRUE(ERRSV)) {
-	jsval rval;
-	SV* cp = newSVsv(ERRSV);
-	if(!PJS_ReflectPerl2JS(aTHX_ cx, NULL, cp, &rval)) 
-	    croak("Can't convert perl error into JSVAL");
-	JS_SetPendingException(cx, rval);
-	sv_setsv(ERRSV, &PL_sv_undef);            
 	sv_free(ret); // Don't want leaks
-	sv_free(cp);
+	propagate2JS(aTHX_ pcx, NULL);
 	return NULL;
     }
 
@@ -59,12 +73,13 @@ PJS_Call_sv_with_jsvals_rsv(
     JSBool ok = JS_TRUE;
     uintN arg;
     I32 rcount = caller ? 1 : 0;
+    PJS_Context *pcx = PJS_GET_CONTEXT(cx);
     
     if(SvROK(code) && SvTYPE(SvRV(code)) == SVt_PVCV) {
         ENTER; SAVETMPS;
         PUSHMARK(SP) ;
 
-	sv_setiv(save_scalar(PJS_Context_SV), PTR2IV(PJS_GET_CONTEXT(cx)));
+	sv_setiv(save_scalar(PJS_Context_SV), PTR2IV(pcx));
 	
 	EXTEND(SP, argc + rcount);
 	PUTBACK;
@@ -115,13 +130,7 @@ PJS_Call_sv_with_jsvals_rsv(
         FREETMPS; LEAVE;
 
         if(ok && SvTRUE(ERRSV)) {
-            jsval rval;
-            SV* cp = newSVsv(ERRSV);
-            if(!PJS_ReflectPerl2JS(aTHX_ cx, obj, cp, &rval))
-		croak("Can't convert perl error into JSVAL");
-	    JS_SetPendingException(cx, rval);
-	    sv_setsv(ERRSV, &PL_sv_undef);
-	    sv_free(cp);
+	    propagate2JS(aTHX_ pcx, obj);
 	    ok = JS_FALSE;
         }
     }

@@ -8,7 +8,7 @@ use Carp;
 
 our $VERSION;
 BEGIN {
-    $VERSION = '1.07';
+    $VERSION = '1.08_1';
     our @ISA = qw(DynaLoader);
     our $_gruntime = 0;
     DynaLoader::bootstrap('JSPL', $VERSION);

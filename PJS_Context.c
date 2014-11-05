@@ -398,7 +398,7 @@ PJS_getFlag(
     JSContext *cx = PJS_getJScx(pcx);
     JSObject *flags = pcx->flags;
     if(!cx || !flags) warn("Flags missing(G)!\n");
-    JS_LookupProperty(PJS_getJScx(pcx), flags, flag, &val);
+    JS_LookupProperty(cx, flags, flag, &val);
     return !JSVAL_IS_VOID(val) && JSVAL_TO_BOOLEAN(val);
 }
 

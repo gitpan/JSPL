@@ -135,6 +135,7 @@ $ctx->eval(q| Bar.$scalar3 = {a: 1, b: 2 } |);
   isa_ok(tied(%{$BarP::scalar3}), "JSPL::Object");
 }
 
+{ no warnings 'deprecated';
 ok(!defined(@BarP::array1),"Don't exists in perl");
 is($ctx->eval(q| Bar['@array1'] |), undef, "Don't exists in JS");
 ok($ctx->eval(q| Bar['@array1'] = ['a','b','c'] |), "Can set array");
@@ -144,6 +145,7 @@ ok(
     $BarP::array1[$#BarP::array1] eq 'c',
     "The correct one"
 );
+}
 
 $ctx->eval(q| Bar.fun = function() { return "I'm JS!" } |);
 ok(defined(&BarP::fun), "Sub created");

@@ -25,7 +25,6 @@
 #undef Move /* Used in new SM */
 
 #include <jsapi.h>
-#include <jsdbgapi.h>
 
 #ifndef JS_ARGV_CALLEE
 #define JS_ARGV_CALLEE(argv)	    ((argv)[-2])
@@ -75,18 +74,16 @@
 
 #ifdef JSS_IS_OBJ
 # define PJS_Script		    JSObject
-# define PJS_O2S(cx,obj)	    (obj)
-# define PJS_S2O(cx,scr)	    (scr)
+# define PJS_Object2Script(cx,obj)  (obj)
+# define PJS_Script2Object(cx,scr)  (scr)
 # define JS_DestroyScript(cx,scr)   /**/
 #else
 # define PJS_Script		    JSScript
-# ifdef JSS_IS_NEW
-#   define PJS_O2S(cx,obj)	    ((JSScript *)JS_GetPrivate(cx, obj))
-#   define PJS_S2O(cx,scr)	    JS_GetObjectFromScript(scr)
-#   define JS_DestroyScript(cx,scr)   /**/
-# else
-#   define PJS_O2S(cx,obj)	    ((JSScript *)JS_GetPrivate(cx, obj))
-#   define PJS_S2O(cx,scr)	    JS_NewScriptObject(cx, scr)
+# define PJS_Script2Object(cx,scr)  JS_NewScriptObject(cx, scr)
+# define PJS_Object2Script(cx,obj)  ((JSScript *)JS_GetPrivate(cx, obj))
+# ifdef JS_HAS_GOFS
+#  define JS_NewScriptObject(cx, scr)  JS_GetObjectFromScript(scr)
+#  define JS_DestroyScript(cx,scr)     /**/
 # endif
 #endif
 

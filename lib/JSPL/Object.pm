@@ -99,7 +99,8 @@ sub AUTOLOAD {
     goto &JSPL::Context::jsc_call;
 }
 
-package JSPL::XMLObject;
+package
+    JSPL::XMLObject;
 use overload '""' => sub { $_[0]->toXMLString };
 @JSPL::XMLObject::ISA = qw(JSPL::Object);
 

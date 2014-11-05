@@ -1,4 +1,5 @@
 #include "JS.h"
+#include "jsdbgapi.h"
 
 /*!
     @struct PJS_TrapHandler

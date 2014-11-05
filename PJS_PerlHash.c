@@ -87,9 +87,10 @@ perlhash_set(
 	return JS_FALSE;
 
     svk = PJS_JSString2SV(aTHX_ cx, PJSID_TO(STRING, id));
+    PJS_DEBUG2("HASH set: %s %s\n", SvPV_nolen(svk), SvPV_nolen(sv));
 
     if(!hv_store_ent(hv, svk, sv, 0)) {
-	if(SvSMAGICAL(hv)) mg_set(sv);
+	if(SvSMAGICAL(sv)) mg_set(sv);
 	else ok = JS_FALSE; // TODO: Check error to report
     }
     sv_free(svk);

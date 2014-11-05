@@ -149,6 +149,10 @@ JSPL::PerlClass - Create native JavaScript classes in Perl
 
 =head1 INTRODUCTION
 
+In JSPL the common way to reflect entire Perl classes to JavaScript is with the
+services provided by the L<JSPL::Controller>, but when you need to create a more
+specialized JavaScript "native class", this module is what you need.
+
 If you known what a "native class" is you can jump to L</INTERFACE> now. If
 not, let me introduce you to a few important concepts that you need to
 understand well if you think that you need the services provided by
@@ -256,6 +260,8 @@ A bitmask of attributes for the class. Valid attributes are:
 
 Makes the class throw an exception if JavaScript tries to instantiate the
 class.
+
+=back
 
 =back
 

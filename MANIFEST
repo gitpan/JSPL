@@ -131,3 +131,4 @@ examples/gtk2.pl
 examples/posix-fds.js
 examples/test_more.js
 Migrating_from_JavaScript.txt
+META.json                                Module JSON meta-data (added by MakeMaker)

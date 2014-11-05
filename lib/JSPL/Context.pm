@@ -22,6 +22,7 @@ my %Flags = (
     'ConvertRegExp' => 1,
     'Restricted' => 1,
     'ConstantsValue' => 1,
+    'ReflectExceptions' => 1,
     'StrictEnable' => 0,
     'VOFixEnable' => 0,
     'XMLEnable' => 1,
@@ -294,7 +295,7 @@ sub compile_file {
 	my($self, $key, $val) = @_;
 	croak "There isn't a flag '$key' in context\n" unless exists $Flags{$key};
 	if($key =~ /^(.+)Enable/) {
-	    return if $JSPL::_gruntime; # Don't play with foreing context
+	    return if $JSPL::_gruntime; # Don't play with foreign context
 	    my $op = lc($1);
 	    my $ops = $self->jsc_get_options;
 	    if($val) { $ops |= $options_by_tag{$op} }
@@ -462,7 +463,7 @@ exception is thrown in javascript this method returns C<undef> and C<$@> is set.
 
 =item bind_class ( $jsclass )
 
-Bind a native class created L<with JSPL::PerlClass>
+Bind a native class created with L<JSPL::PerlClass>
 
 =item check_privileges ( )
 
@@ -586,6 +587,19 @@ The default value is TRUE
 If TRUE all instances of javascript C<RegExp> will be converted to perl
 RegExp, when FALSE they will be wrapped in L<JSPL::Object> instances in the
 normal way.
+
+The default value is TRUE
+
+=item ReflectExceptions
+
+When TRUE all I<untrapped> Perl's exceptions (when you C<die> outside an C<eval>)
+in Perl code called from JavaScript land, the exception can be trapped in the 
+caller JavaScript code using C<try .. catch>.
+
+Set it to FALSE and the exception will not be visible in JavaScript code, i.e. the
+exception in untrappable. What happens in the upper Perl's stack depends on the
+value of the C<RaiseExceptions> option. This can be useful when calling untrusted
+JavaScript code.
 
 The default value is TRUE
 
